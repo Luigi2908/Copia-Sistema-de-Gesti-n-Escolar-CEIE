@@ -4,7 +4,7 @@ import { Teacher, UserRole, User, Campus, TeacherCourseAssignment } from '../../
 import Card from '../ui/Card';
 import { useAuth } from '../../context/AuthContext';
 import { Action, hasPermission } from '../../utils/permissions';
-import { UploadIcon, UserAddIcon, PlusIcon, KeyIcon, EditIcon, TrashIcon, BookOpenIcon, EyeIcon, IdentificationIcon, CloseIcon, PaperAirplaneIcon, EyeSlashIcon, DownloadIcon } from '../icons';
+import { UploadIcon, UserAddIcon, PlusIcon, KeyIcon, EditIcon, TrashIcon, BookOpenIcon, EyeIcon, IdentificationIcon, CloseIcon, PaperAirplaneIcon, EyeSlashIcon, DownloadIcon, ChevronRightIcon } from '../icons';
 import { useData } from '../../context/DataContext';
 
 // Datos corregidos según archivo PDF (Facultad > Programa > Semestre > Materias)
@@ -36,43 +36,134 @@ const CURRICULUM_DATA: any = {
             '4': ['Fundamentos angular', 'Mercadeo y ventas', 'Sguridad informática', 'Excel nivel avanzado', 'Fundamentos de electrónica', 'Adinistración de redes', 'Fundamentos de Spring framework', 'Diseño web con Divi', 'Pruebas T y T', 'JAVA'],
             '5': ['Formulación de proyectos y marco lógico', 'PHP nivel avanzado', 'Arquitectura TI', 'Inglés intermedio nivel I', 'Fundamentos de Python', 'Facebook ADS', 'Inglés básico nivel III', 'Diseño UX UI'],
             '6': ['Juegos gerenciales', 'BACK END', 'Física, electrónica y laboratorio', 'Big Data I', 'Fundamentos de machine Learning', 'Gestión ágil de proyectos innovadores', 'Android desde cero', 'Producción de audio'],
-            '7': ['Fundamentos de VUE JS', 'Técnicas de negociación', 'Gerencia y gestión de TI', 'Inglés intermedio nivel II', 'Adinistradores de servidores', 'Métodos numéricos', 'Excel nivel experto', 'Inglés intermedio nivel III'],
+            '7': ['Fundamentos de VUE JS', 'Técnicas de negociación', 'Gerencia y gestión de TI', 'Inglés intermedio nivel II', 'Adinistadores de servidores', 'Métodos numéricos', 'Excel nivel experto', 'Inglés intermedio nivel III'],
             '8': ['Inteligencia artificial', 'Big Data II', 'Nuromarketing', 'Data Warehouse', 'GITHUB desde cero', 'Pruebas saber PRO', 'Programación orientada a objetos con PHP', 'Sistemas móviles']
         }
     }
 };
 
+const ViewAssignmentsModal: React.FC<{
+    teacher: Teacher;
+    assignments: TeacherCourseAssignment[];
+    onClose: () => void;
+    onEdit: (assignment: TeacherCourseAssignment) => void;
+    onDelete: (id: string) => void;
+}> = ({ teacher, assignments, onClose, onEdit, onDelete }) => {
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center p-4 backdrop-blur-sm">
+            <Card className="w-full max-w-2xl shadow-2xl animate-fade-in-up border-none max-h-[80vh] flex flex-col">
+                <div className="flex justify-between items-center p-6 border-b dark:border-slate-700">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-800 dark:text-white">Carga Académica Detallada</h2>
+                        <p className="text-sm text-slate-500">Docente: <span className="font-bold text-indigo-600">{teacher.name}</span></p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><CloseIcon className="w-6 h-6 text-slate-400"/></button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                    {assignments.length > 0 ? (
+                        <div className="grid gap-3">
+                            {assignments.map((ass) => (
+                                <div key={ass.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 group hover:border-indigo-200 transition-all">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-white dark:bg-slate-900 rounded-xl shadow-sm text-indigo-600">
+                                            <BookOpenIcon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-slate-800 dark:text-white text-sm">{ass.subject}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{ass.class}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={() => onEdit(ass)}
+                                            className="p-2 bg-white dark:bg-slate-900 text-amber-500 hover:text-amber-600 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 transition-colors"
+                                            title="Editar Materia"
+                                        >
+                                            <EditIcon className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => onDelete(ass.id)}
+                                            className="p-2 bg-white dark:bg-slate-900 text-rose-500 hover:text-rose-600 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 transition-colors"
+                                            title="Eliminar de la carga"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-20 text-center text-slate-400">
+                            <BookOpenIcon className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                            <p className="font-bold">No hay materias asignadas a este docente.</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-6 border-t dark:border-slate-700 bg-slate-50 dark:bg-slate-900 rounded-b-xl flex justify-end">
+                    <button onClick={onClose} className="px-6 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all text-sm">Cerrar</button>
+                </div>
+            </Card>
+        </div>
+    );
+};
+
 const AssignmentModal: React.FC<{
     teacher: Teacher;
+    assignmentToEdit?: TeacherCourseAssignment | null;
     onClose: () => void;
-    onSave: (data: { subject: string, grade: string, faculty?: string, program?: string }) => void;
-}> = ({ teacher, onClose, onSave }) => {
+    onSave: (data: { subject: string, grade: string, faculty?: string, program?: string, id?: string }) => void;
+}> = ({ teacher, assignmentToEdit, onClose, onSave }) => {
+    const { assignments } = useData();
     const [faculty, setFaculty] = useState<string>('');
     const [program, setProgram] = useState<string>('');
-    const [semester, setSemester] = useState<string>('');
-    const [subject, setSubject] = useState<string>('');
+    const [semester, setSemester] = useState<string>('all'); 
+    const [subject, setSubject] = useState<string>(assignmentToEdit?.subject || '');
 
     const faculties = Object.keys(CURRICULUM_DATA);
     const programs = faculty ? Object.keys(CURRICULUM_DATA[faculty]) : [];
     const semesters = (faculty && program) ? Object.keys(CURRICULUM_DATA[faculty][program]) : [];
-    const subjects = (faculty && program && semester) ? CURRICULUM_DATA[faculty][program][semester] : [];
+    
+    const subjects = useMemo(() => {
+        if (!faculty || !program) return [];
+        
+        let allSubs: string[] = [];
+        if (semester === 'all') {
+            Object.values(CURRICULUM_DATA[faculty][program]).forEach((semSubs: any) => {
+                allSubs.push(...semSubs);
+            });
+            allSubs = Array.from(new Set(allSubs));
+        } else {
+            allSubs = [...(CURRICULUM_DATA[faculty][program][semester] || [])];
+        }
+
+        const currentClassLabel = semester === 'all' ? `${program} (Todos los semestres)` : `${program} - Semestre ${semester}`;
+
+        return allSubs.filter(sub => {
+            const isAlreadyAssigned = assignments.some(a => a.subject === sub && a.class === currentClassLabel && a.id !== assignmentToEdit?.id);
+            return !isAlreadyAssigned;
+        }).sort();
+
+    }, [faculty, program, semester, assignments, assignmentToEdit]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave({ 
+            id: assignmentToEdit?.id,
             subject, 
-            grade: `${program} - Semestre ${semester}`, 
+            grade: semester === 'all' ? `${program} (Todos los semestres)` : `${program} - Semestre ${semester}`, 
             faculty,
             program
         });
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-[80] flex justify-center items-center p-4 backdrop-blur-sm">
             <Card className="w-full max-w-xl shadow-2xl border-none animate-fade-in-up">
                 <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-gray-700">
                     <div>
-                        <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Asignar Carga Académica</h2>
+                        <h2 className="text-xl font-extrabold text-slate-800 dark:text-white tracking-tight">{assignmentToEdit ? 'Editar Materia' : 'Asignar Carga Académica'}</h2>
                         <p className="text-sm text-slate-500 dark:text-gray-400">Docente: <span className="font-bold text-primary">{teacher.name}</span></p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
@@ -81,12 +172,11 @@ const AssignmentModal: React.FC<{
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* 1. Facultad */}
                     <div>
                         <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">1. Facultad</label>
                         <select 
                             value={faculty} 
-                            onChange={(e) => { setFaculty(e.target.value); setProgram(''); setSemester(''); setSubject(''); }} 
+                            onChange={(e) => { setFaculty(e.target.value); setProgram(''); setSemester('all'); setSubject(''); }} 
                             className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                             required
                         >
@@ -95,12 +185,11 @@ const AssignmentModal: React.FC<{
                         </select>
                     </div>
 
-                    {/* 2. Programa Académico */}
                     <div>
                         <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">2. Programa Académico</label>
                         <select 
                             value={program} 
-                            onChange={(e) => { setProgram(e.target.value); setSemester(''); setSubject(''); }} 
+                            onChange={(e) => { setProgram(e.target.value); setSemester('all'); setSubject(''); }} 
                             disabled={!faculty}
                             className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white disabled:opacity-50"
                             required
@@ -110,49 +199,37 @@ const AssignmentModal: React.FC<{
                         </select>
                     </div>
 
-                    {/* 3. Semestre */}
                     <div>
-                        <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">3. Semestre</label>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">3. Semestre (Filtrar)</label>
                         <select 
                             value={semester} 
                             onChange={(e) => { setSemester(e.target.value); setSubject(''); }} 
                             disabled={!program}
                             className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white disabled:opacity-50"
-                            required
                         >
-                            <option value="">Seleccione Semestre</option>
+                            <option value="all">TODOS LOS SEMESTRES (Habilitado)</option>
                             {semesters.map(n => <option key={n} value={n}>Semestre {n}</option>)}
                         </select>
                     </div>
 
-                    {/* 4. Espacio Académico */}
                     <div>
-                        <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">4. Espacio Académico (Asignatura)</label>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">4. Espacio Académico (Materia)</label>
                         <select 
                             value={subject} 
                             onChange={(e) => setSubject(e.target.value)} 
-                            disabled={!semester}
-                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white disabled:opacity-50"
+                            disabled={!program}
+                            className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white disabled:opacity-50 font-bold"
                             required
                         >
-                            <option value="">Seleccione Espacio Académico</option>
+                            <option value="">{subjects.length > 0 ? 'Seleccione Espacio Académico' : 'No hay espacios disponibles (Todos asignados)'}</option>
                             {subjects.map((s: string) => <option key={s} value={s}>{s}</option>)}
                         </select>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-6 border-t dark:border-gray-700">
-                        <button 
-                            type="button" 
-                            onClick={onClose} 
-                            className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all dark:bg-slate-700 dark:text-white"
-                        >
-                            Cancelar
-                        </button>
-                        <button 
-                            type="submit" 
-                            className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
-                        >
-                            <BookOpenIcon className="w-5 h-5"/> Confirmar Carga
+                        <button type="button" onClick={onClose} className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all dark:bg-slate-700 dark:text-white">Cancelar</button>
+                        <button type="submit" disabled={!subject} className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50">
+                            <BookOpenIcon className="w-5 h-5"/> {assignmentToEdit ? 'Actualizar Materia' : 'Confirmar Carga'}
                         </button>
                     </div>
                 </form>
@@ -161,118 +238,146 @@ const AssignmentModal: React.FC<{
     );
 };
 
-// Se implementó el componente BulkUploadTeachersModal que faltaba
-const BulkUploadTeachersModal: React.FC<{
+const TeacherFormModal: React.FC<{
     onClose: () => void;
-    onSave: (newTeachers: any[]) => void;
+    onSave: (teacher: any) => void;
+    teacherToEdit: Teacher | null;
     user: User | null;
     campuses: Campus[];
-}> = ({ onClose, onSave, user, campuses }) => {
-    const [file, setFile] = useState<File | null>(null);
-    const [parsedData, setParsedData] = useState<any[]>([]);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [campusId, setCampusId] = useState(user?.role === UserRole.SUPER_ADMIN ? (campuses[0]?.id || '') : (user?.campusId || ''));
+}> = ({ onClose, onSave, teacherToEdit, user, campuses }) => {
+    const { assignments } = useData();
+    const isEditing = !!teacherToEdit;
+    const [formData, setFormData] = useState({
+        name: teacherToEdit?.name || '',
+        documentNumber: teacherToEdit?.documentNumber || '',
+        email: teacherToEdit?.email || '',
+        phone: teacherToEdit?.phone || '',
+        subject: teacherToEdit?.subject || '',
+        campusId: teacherToEdit?.campusId || (user?.role === UserRole.CAMPUS_ADMIN ? user.campusId : ''),
+        status: teacherToEdit?.status || 'active',
+    });
 
-    const downloadTemplate = () => {
-        const headers = "nombre,documento,correo,telefono,materia_principal\n";
-        const example = "Carlos Rodriguez,1001,carlos@ejemplo.com,3001234567,Matemáticas\n";
-        const blob = new Blob([headers + example], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", "plantilla_profesores.csv");
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const faculties = Object.keys(CURRICULUM_DATA);
+    const [faculty, setFaculty] = useState<string>('');
+    const [program, setProgram] = useState<string>('');
+
+    const programs = faculty ? Object.keys(CURRICULUM_DATA[faculty]) : [];
+    
+    const availableSubjects = useMemo(() => {
+        if (!faculty || !program) return [];
+        const subs: string[] = [];
+        Object.values(CURRICULUM_DATA[faculty][program]).forEach((sArr: any) => subs.push(...sArr));
+        const uniqueSubs = Array.from(new Set(subs));
+        return uniqueSubs.filter(sub => {
+            if (isEditing && sub === teacherToEdit?.subject) return true;
+            return !assignments.some(a => a.subject === sub);
+        }).sort();
+    }, [faculty, program, assignments, isEditing, teacherToEdit]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-            const reader = new FileReader();
-            setIsProcessing(true);
-            reader.onload = (event) => {
-                const text = event.target?.result as string;
-                const rows = text.split('\n').filter(row => row.trim());
-                const data = rows.slice(1).map(row => {
-                    const columns = row.split(',').map(col => col.trim());
-                    return {
-                        name: columns[0],
-                        documentNumber: columns[1],
-                        email: columns[2],
-                        phone: columns[3],
-                        subject: columns[4],
-                        campusId: campusId,
-                        status: 'active'
-                    };
-                });
-                setParsedData(data);
-                setIsProcessing(false);
-            };
-            reader.readAsText(selectedFile);
-        }
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(formData);
     };
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
-            <Card className="w-full max-w-2xl flex flex-col">
-                <div className="flex justify-between items-center mb-4 border-b pb-3 dark:border-gray-700">
-                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">Carga Masiva de Profesores</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><CloseIcon className="w-6 h-6"/></button>
+            <Card className="w-full max-w-xl">
+                <div className="flex justify-between items-center mb-6 pb-3 border-b dark:border-gray-700">
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">{isEditing ? 'Editar Perfil Docente' : 'Nuevo Profesor'}</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><CloseIcon className="w-6 h-6"/></button>
                 </div>
-                
-                <div className="space-y-4 mb-6">
-                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 flex justify-between items-center">
-                        <div>
-                            <p className="text-sm font-bold text-indigo-800 dark:text-indigo-300 flex items-center gap-2 mb-1">
-                                <DownloadIcon className="w-4 h-4"/> Formato requerido (CSV):
-                            </p>
-                            <code className="text-[10px] block bg-white dark:bg-slate-800 p-2 rounded border dark:border-slate-700 dark:text-slate-300">
-                                nombre, documento, correo, telefono, materia_principal
-                            </code>
-                        </div>
-                        <button 
-                            onClick={downloadTemplate}
-                            className="bg-white text-indigo-600 px-4 py-2 rounded-lg text-xs font-bold border border-indigo-200 hover:bg-indigo-50 transition-colors shadow-sm"
-                        >
-                            Descargar Plantilla
-                        </button>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold mb-1 dark:text-gray-300">Nombre Completo</label>
+                        <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full p-2.5 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
                     </div>
-
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Documento</label>
+                            <input type="text" name="documentNumber" value={formData.documentNumber} onChange={handleChange} className="w-full p-2.5 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Teléfono</label>
+                            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-2.5 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold mb-1 dark:text-gray-300">Correo Institucional</label>
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full p-2.5 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
+                    </div>
+                    
                     {user?.role === UserRole.SUPER_ADMIN && (
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asignar a Sede:</label>
-                            <select value={campusId} onChange={e => setCampusId(e.target.value)} className="w-full p-2 border rounded-lg dark:bg-slate-800 dark:text-white">
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Sede</label>
+                            <select name="campusId" value={formData.campusId} onChange={handleChange} className="w-full p-2.5 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
+                                <option value="">Seleccionar Sede</option>
                                 {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                     )}
 
-                    <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative">
-                        <input type="file" accept=".csv" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                        <UploadIcon className="w-10 h-10 mx-auto text-slate-300 mb-2"/>
-                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{file ? file.name : 'Haz clic o arrastra tu archivo CSV aquí'}</p>
+                    <div>
+                        <label className="block text-sm font-bold mb-1 dark:text-gray-300">Estado</label>
+                        <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2.5 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white">
+                            <option value="active">Activo</option>
+                            <option value="inactive">Inactivo</option>
+                        </select>
                     </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700 mt-6">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors">Cancelar</button>
+                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 shadow-sm transition-colors">
+                            {isEditing ? 'Guardar Cambios' : 'Crear Profesor'}
+                        </button>
+                    </div>
+                </form>
+            </Card>
+        </div>
+    );
+};
 
-                    {parsedData.length > 0 && (
-                        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800">
-                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">✓ Se detectaron {parsedData.length} profesores listos para importar.</p>
-                        </div>
-                    )}
-                </div>
+const TempPasswordModal: React.FC<{ user: User; onClose: () => void; onSave: (tempPass: string) => void; }> = ({ user, onClose, onSave }) => {
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
-                <div className="flex justify-end space-x-3 pt-4 border-t dark:border-gray-700">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-200">Cancelar</button>
-                    <button 
-                        onClick={() => onSave(parsedData)} 
-                        disabled={parsedData.length === 0 || isProcessing}
-                        className="px-6 py-2 bg-primary text-white font-bold rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-500/20 transition-all"
-                    >
-                        Procesar Importación
-                    </button>
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(password);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+            <Card className="w-full max-w-sm">
+                <div className="flex justify-between items-center mb-4 border-b pb-3 dark:border-gray-700">
+                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">Asignar Clave Provisional</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><CloseIcon className="w-5 h-5"/></button>
                 </div>
+                <p className="text-sm text-gray-600 mb-4 dark:text-gray-400">Docente: <strong>{user.name}</strong></p>
+                <form onSubmit={handleSubmit}>
+                    <div className="relative mb-6">
+                        <label className="block text-xs font-bold mb-1 uppercase text-gray-500 dark:text-gray-400">Nueva Contraseña</label>
+                        <input 
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white pr-10"
+                            placeholder="Ingrese clave temporal"
+                            required
+                            minLength={4}
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
+                            {showPassword ? <EyeSlashIcon className="w-5 h-5"/> : <EyeIcon className="w-5 h-5"/>}
+                        </button>
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <button type="button" onClick={onClose} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-200">Cancelar</button>
+                        <button type="submit" className="px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600 shadow-md">Guardar</button>
+                    </div>
+                </form>
             </Card>
         </div>
     );
@@ -280,15 +385,17 @@ const BulkUploadTeachersModal: React.FC<{
 
 const TeacherManagementPage: React.FC = () => {
     const { user, sendPasswordReset } = useAuth();
-    const { teachers, addTeacher, updateTeacher, deleteTeacher, assignments, addAssignment, setHomeroomAssignments, assignTemporaryPassword, campuses } = useData();
+    const { teachers, addTeacher, updateTeacher, deleteTeacher, assignments, addAssignment, updateAssignment, deleteAssignment, assignTemporaryPassword, campuses } = useData();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isBulkOpen, setIsBulkOpen] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
     const [deletingTeacher, setDeletingTeacher] = useState<Teacher | null>(null);
     const [resettingPasswordTeacher, setResettingPasswordTeacher] = useState<Teacher | null>(null);
     const [assigningPassTeacher, setAssigningPassTeacher] = useState<Teacher | null>(null);
     const [assigningTeacher, setAssigningTeacher] = useState<Teacher | null>(null);
+    const [viewingAssignmentsTeacher, setViewingAssignmentsTeacher] = useState<Teacher | null>(null);
+    const [editingAssignment, setEditingAssignment] = useState<TeacherCourseAssignment | null>(null);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
     
@@ -323,7 +430,7 @@ const TeacherManagementPage: React.FC = () => {
             try {
                 await deleteTeacher(deletingTeacher.id);
                 showNotification('Profesor eliminado', 'success');
-            } catch (e) {
+            } catch (error) {
                 showNotification('Error al eliminar', 'error');
             }
             setDeletingTeacher(null);
@@ -357,33 +464,38 @@ const TeacherManagementPage: React.FC = () => {
     const handleSaveAssignment = async (data: any) => {
         if (!assigningTeacher) return;
         try {
-            await addAssignment({
-                teacherId: assigningTeacher.id,
-                subject: data.subject,
-                class: data.grade,
-                section: '-',
-                jornada: 'Diurno',
-                intensidadHoraria: 4 
-            });
-            showNotification('Carga asignada exitosamente', 'success');
+            if (data.id) {
+                await updateAssignment(data.id, {
+                    subject: data.subject,
+                    class: data.grade,
+                });
+                showNotification('Asignación actualizada', 'success');
+            } else {
+                await addAssignment({
+                    teacherId: assigningTeacher.id,
+                    subject: data.subject,
+                    class: data.grade,
+                    section: '-',
+                    jornada: 'Diurno',
+                    intensidadHoraria: 4 
+                });
+                showNotification('Carga asignada exitosamente', 'success');
+            }
             setAssigningTeacher(null);
+            setEditingAssignment(null);
         } catch (e) {
-            showNotification('Error al asignar carga', 'error');
+            showNotification('Error al gestionar carga', 'error');
         }
     };
 
-    const handleBulkSave = async (teachersList: any[]) => {
-        let added = 0;
-        for (const t of teachersList) {
-            try {
-                await addTeacher(t);
-                added++;
-            } catch (e) {
-                console.error(e);
-            }
+    const handleDeleteAssignment = async (id: string) => {
+        if (!window.confirm('¿Eliminar esta materia de la carga académica?')) return;
+        try {
+            await deleteAssignment(id);
+            showNotification('Materia eliminada de la carga', 'success');
+        } catch (e) {
+            showNotification('Error al eliminar materia', 'error');
         }
-        setIsBulkOpen(false);
-        showNotification(`Se han importado ${added} docentes correctamente.`, 'success');
     };
 
     const teachersForView = (user?.role === UserRole.SUPER_ADMIN ? teachers : teachers.filter(t => t.campusId === user?.campusId))
@@ -412,7 +524,7 @@ const TeacherManagementPage: React.FC = () => {
                             </div>
                             Gestión de Profesores
                         </h2>
-                        <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración del cuerpo docente.</p>
+                        <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Cuerpo docente y administración de carga académica.</p>
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -431,14 +543,9 @@ const TeacherManagementPage: React.FC = () => {
                             </div>
                         </div>
                         {user && hasPermission(user.role, Action.MANAGE_TEACHERS) && (
-                            <div className="flex gap-2">
-                                <button onClick={() => setIsBulkOpen(true)} className="bg-white border border-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all text-sm flex items-center justify-center gap-2 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
-                                    <UploadIcon className="w-4 h-4"/> Masiva
-                                </button>
-                                <button onClick={() => { setEditingTeacher(null); setIsModalOpen(true); }} className="bg-primary text-white font-bold py-2.5 px-5 rounded-lg shadow-md shadow-blue-500/20 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 transition-all text-sm flex items-center justify-center gap-2">
-                                    <PlusIcon className="w-4 h-4"/> Añadir
-                                </button>
-                            </div>
+                            <button onClick={() => { setEditingTeacher(null); setIsModalOpen(true); }} className="bg-primary text-white font-bold py-2.5 px-5 rounded-lg shadow-md shadow-blue-500/20 hover:bg-blue-700 hover:shadow-lg transition-all text-sm flex items-center justify-center gap-2">
+                                <PlusIcon className="w-4 h-4"/> Añadir Profesor
+                            </button>
                         )}
                     </div>
                 </div>
@@ -448,57 +555,61 @@ const TeacherManagementPage: React.FC = () => {
                         <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 font-semibold tracking-wider dark:bg-slate-800 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                             <tr>
                                 <th scope="col" className="px-6 py-4">Nombre Completo</th>
-                                <th scope="col" className="px-6 py-4">Espacio Académico</th>
-                                {isSuperAdmin && <th scope="col" className="px-6 py-4">Sede</th>}
-                                <th scope="col" className="px-6 py-4 text-center">Asignaciones</th>
-                                <th scope="col" className="px-6 py-4">Correo Electrónico</th>
+                                <th scope="col" className="px-6 py-4 text-center">Carga Actual</th>
                                 <th scope="col" className="px-6 py-4">Estado</th>
-                                <th scope="col" className="px-6 py-4 text-center">Acciones</th>
+                                <th scope="col" className="px-6 py-4 text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {teachersForView.map((teacher) => {
-                                const assignedCoursesCount = assignments.filter(a => a.teacherId === teacher.id).length;
+                                const teacherAssignments = assignments.filter(a => a.teacherId === teacher.id);
+                                const assignedCoursesCount = teacherAssignments.length;
                                 return (
                                 <tr key={teacher.id} className="bg-white hover:bg-slate-50/80 transition-colors dark:bg-slate-900 dark:hover:bg-slate-800/50">
                                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
                                                 {teacher.avatar ? <img src={teacher.avatar} alt="" className="w-full h-full object-cover"/> : teacher.name.charAt(0)}
                                             </div>
-                                            {teacher.name}
+                                            <div>
+                                                <p className="font-bold">{teacher.name}</p>
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">{teacher.documentNumber}</p>
+                                            </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{teacher.subject}</td>
-                                    {isSuperAdmin && <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{teacher.campusName}</td>}
                                     <td className="px-6 py-4 text-center">
-                                        <span className="bg-slate-100 text-slate-700 font-bold px-2.5 py-1 rounded-full text-xs dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{assignedCoursesCount}</span>
+                                        <button 
+                                            onClick={() => setViewingAssignmentsTeacher(teacher)}
+                                            className="group inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all focus:outline-none shadow-sm dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50"
+                                        >
+                                            <BookOpenIcon className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                                            <span className="font-black text-xs uppercase tracking-tight">{assignedCoursesCount} Materias</span>
+                                            <ChevronRightIcon className="w-3 h-3 opacity-40 group-hover:translate-x-1 transition-transform" />
+                                        </button>
                                     </td>
-                                    <td className="px-6 py-4 text-slate-500 font-mono text-xs">{teacher.email}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${teacher.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800'}`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${teacher.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${teacher.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400'}`}>
                                             {teacher.status === 'active' ? 'Activo' : 'Inactivo'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                    <td className="px-6 py-4 whitespace-nowrap text-right">
                                        {user && hasPermission(user.role, Action.MANAGE_TEACHERS) && (
                                            <div className="flex justify-end items-center gap-2">
-                                                <button onClick={() => setAssigningTeacher(teacher)} className="p-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all focus:outline-none shadow-sm dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40" title="Asignar Carga Académica">
-                                                    <BookOpenIcon className="w-4 h-4"/>
+                                                <button onClick={() => setAssigningTeacher(teacher)} className="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 transition-all focus:outline-none shadow-sm dark:bg-indigo-900/20 dark:text-indigo-400" title="Nueva Asignación">
+                                                    <PlusIcon className="w-4 h-4"/>
                                                 </button>
                                                 {isSuperAdmin && (
-                                                    <button onClick={() => setAssigningPassTeacher(teacher)} className="p-2 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all focus:outline-none shadow-sm dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-blue-900/40" title="Asignar Clave Provisional">
+                                                    <button onClick={() => setAssigningPassTeacher(teacher)} className="p-2 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all focus:outline-none shadow-sm dark:bg-amber-900/20 dark:text-amber-400" title="Clave Provisional">
                                                         <KeyIcon className="w-4 h-4"/>
                                                     </button>
                                                 )}
-                                                <button onClick={() => setResettingPasswordTeacher(teacher)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-emerald-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-emerald-400" title="Restablecer Contraseña (Email)">
+                                                <button onClick={() => setResettingPasswordTeacher(teacher)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-emerald-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-emerald-400" title="Restablecer Vía Email">
                                                     <PaperAirplaneIcon className="w-4 h-4"/>
                                                 </button>
-                                                <button onClick={() => { setEditingTeacher(teacher); setIsModalOpen(true); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-amber-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400" title="Editar">
+                                                <button onClick={() => { setEditingTeacher(teacher); setIsModalOpen(true); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-amber-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400" title="Editar Perfil">
                                                     <EditIcon className="w-4 h-4"/>
                                                 </button>
-                                                <button onClick={() => setDeletingTeacher(teacher)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-rose-400" title="Eliminar">
+                                                <button onClick={() => setDeletingTeacher(teacher)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-rose-400" title="Eliminar Profesor">
                                                     <TrashIcon className="w-4 h-4"/>
                                                 </button>
                                             </div>
@@ -511,144 +622,35 @@ const TeacherManagementPage: React.FC = () => {
                 </div>
             </div>
         </Card>
+
         {isModalOpen && <TeacherFormModal onClose={() => setIsModalOpen(false)} onSave={handleSaveTeacher} teacherToEdit={editingTeacher} user={user} campuses={campuses} />}
         {deletingTeacher && <DeleteConfirmationModal teacher={deletingTeacher} onClose={() => setDeletingTeacher(null)} onConfirm={handleDeleteTeacher} />}
         {resettingPasswordTeacher && <ResetPasswordConfirmationModal user={resettingPasswordTeacher} onClose={() => setResettingPasswordTeacher(null)} onConfirm={handleSendResetLink} />}
         {assigningPassTeacher && <TempPasswordModal user={assigningPassTeacher} onClose={() => setAssigningPassTeacher(null)} onSave={handleAssignTempPass} />}
-        {assigningTeacher && <AssignmentModal teacher={assigningTeacher} onClose={() => setAssigningTeacher(null)} onSave={handleSaveAssignment} />}
-        {isBulkOpen && <BulkUploadTeachersModal onClose={() => setIsBulkOpen(false)} onSave={handleBulkSave} user={user} campuses={campuses} />}
+        
+        {(assigningTeacher || editingAssignment) && (
+            <AssignmentModal 
+                teacher={assigningTeacher!} 
+                assignmentToEdit={editingAssignment}
+                onClose={() => { setAssigningTeacher(null); setEditingAssignment(null); }} 
+                onSave={handleSaveAssignment} 
+            />
+        )}
+
+        {viewingAssignmentsTeacher && (
+            <ViewAssignmentsModal 
+                teacher={viewingAssignmentsTeacher}
+                assignments={assignments.filter(a => a.teacherId === viewingAssignmentsTeacher.id)}
+                onClose={() => setViewingAssignmentsTeacher(null)}
+                onEdit={(ass) => {
+                    setEditingAssignment(ass);
+                    setAssigningTeacher(viewingAssignmentsTeacher);
+                    setViewingAssignmentsTeacher(null);
+                }}
+                onDelete={handleDeleteAssignment}
+            />
+        )}
         </>
-    );
-};
-
-const TeacherFormModal: React.FC<{
-    onClose: () => void;
-    onSave: (teacher: any) => void;
-    teacherToEdit: Teacher | null;
-    user: User | null;
-    campuses: Campus[];
-}> = ({ onClose, onSave, teacherToEdit, user, campuses }) => {
-    const isEditing = !!teacherToEdit;
-    const [formData, setFormData] = useState({
-        name: teacherToEdit?.name || '',
-        documentNumber: teacherToEdit?.documentNumber || '',
-        email: teacherToEdit?.email || '',
-        phone: teacherToEdit?.phone || '',
-        subject: teacherToEdit?.subject || '',
-        campusId: teacherToEdit?.campusId || (user?.role === UserRole.CAMPUS_ADMIN ? user.campusId : ''),
-        status: teacherToEdit?.status || 'active',
-    });
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave(formData);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
-            <Card className="w-full max-w-lg">
-                <div className="flex justify-between items-center mb-6 pb-3 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">{isEditing ? 'Editar Profesor' : 'Nuevo Profesor'}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><CloseIcon className="w-6 h-6"/></button>
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-bold mb-1 dark:text-gray-300">Nombre Completo</label>
-                        <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Documento</label>
-                            <input type="text" name="documentNumber" value={formData.documentNumber} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Teléfono</label>
-                            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold mb-1 dark:text-gray-300">Correo Electrónico</label>
-                        <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold mb-1 dark:text-gray-300">Espacio Académico Principal</label>
-                        <input type="text" name="subject" value={formData.subject} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
-                    </div>
-                    
-                    {user?.role === UserRole.SUPER_ADMIN && (
-                        <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Sede</label>
-                            <select name="campusId" value={formData.campusId} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
-                                <option value="">Seleccionar Sede</option>
-                                {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="block text-sm font-bold mb-1 dark:text-gray-300">Estado</label>
-                        <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white">
-                            <option value="active">Activo</option>
-                            <option value="inactive">Inactivo</option>
-                        </select>
-                    </div>
-                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700 mt-6">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 shadow-sm transition-colors">
-                            {isEditing ? 'Guardar Cambios' : 'Crear Profesor'}
-                        </button>
-                    </div>
-                </form>
-            </Card>
-        </div>
-    );
-};
-
-const TempPasswordModal: React.FC<{ user: User; onClose: () => void; onSave: (tempPass: string) => void; }> = ({ user, onClose, onSave }) => {
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave(password);
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
-            <Card className="w-full max-w-sm">
-                <div className="flex justify-between items-center mb-4 border-b pb-3 dark:border-gray-700">
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">Asignar Clave Provisional</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><CloseIcon className="w-5 h-5"/></button>
-                </div>
-                <p className="text-sm text-gray-600 mb-4 dark:text-gray-400">Usuario: <strong>{user.name}</strong></p>
-                <form onSubmit={handleSubmit}>
-                    <div className="relative mb-6">
-                        <label className="block text-xs font-bold mb-1 uppercase text-gray-500 dark:text-gray-400">Nueva Contraseña</label>
-                        <input 
-                            type={showPassword ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white pr-10"
-                            placeholder="Ingrese clave temporal"
-                            required
-                            minLength={4}
-                        />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
-                            {showPassword ? <EyeSlashIcon className="w-5 h-5"/> : <EyeIcon className="w-5 h-5"/>}
-                        </button>
-                    </div>
-                    <div className="flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-200">Cancelar</button>
-                        <button type="submit" className="px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-bold hover:bg-amber-600 shadow-md">Guardar</button>
-                    </div>
-                </form>
-            </Card>
-        </div>
     );
 };
 
