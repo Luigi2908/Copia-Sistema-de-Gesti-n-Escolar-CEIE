@@ -176,7 +176,7 @@ const CampusAdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <StatCard icon={<StudentsIcon />} title={`Estudiantes`} value={stats.students.toLocaleString('es-ES')} color="#3B82F6" />
                 <StatCard icon={<StaffIcon />} title={`Profesores`} value={String(stats.staff)} color="#10B981" />
-                <StatCard icon={<ExamsIcon />} title="Exámenes" value={String(stats.upcomingExams)} color="#F97316" />
+                <StatCard icon={<ExamsIcon />} title="Actividades" value={String(stats.upcomingExams)} color="#F97316" />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
@@ -263,9 +263,9 @@ const TeacherDashboard: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard icon={<IdentificationIcon />} title="Mis Asignaturas" value={String(mySchedules.length)} color="#3B82F6" />
+                <StatCard icon={<IdentificationIcon />} title="Espacios Académicos" value={String(mySchedules.length)} color="#3B82F6" />
                 <StatCard icon={<ExamsIcon />} title="Actividades Pendientes" value={String(myExams.length)} color="#F97316" />
-                <StatCard icon={<CalendarIcon />} title="Próxima Clase" value={nextClass ? `${nextClass.classInfo.subject} (${nextClass.day})` : 'Sin clases'} color="#10B981" />
+                <StatCard icon={<CalendarIcon />} title="Próximo Espacio" value={nextClass ? `${nextClass.classInfo.subject} (${nextClass.day})` : 'Sin espacios'} color="#10B981" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -316,7 +316,7 @@ const TeacherDashboard: React.FC = () => {
                                                         {s.subject}
                                                     </p>
                                                     <p className={`text-[9px] font-bold mt-0.5 opacity-70 ${currentClassId === s.id ? 'text-blue-50' : 'text-slate-500'}`}>
-                                                        Grupo {s.class}-{s.section}
+                                                        {s.class}
                                                     </p>
                                                 </div>
                                             ))

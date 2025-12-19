@@ -20,7 +20,7 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showDemoUsers, setShowDemoUsers] = useState(false);
-  const [schoolName, setSchoolName] = useState('Gestión Escolar');
+  const [schoolName, setSchoolName] = useState('Sistema Gestión Superior');
   const [schoolLogo, setSchoolLogo] = useState<string>('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHBsMGdhaWJpamQ0OGxuYm85N2pyZ2F3YWdycjR2Ymtza2s2dzJhYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/m7t3XLkAB0fX7WEFs0/giphy.gif');
 
   useEffect(() => {
@@ -42,15 +42,6 @@ const LoginPage: React.FC = () => {
       return;
     }
     setError('');
-
-    const globalSettingsRaw = localStorage.getItem('school_global_settings');
-    const isMaintenance = globalSettingsRaw ? JSON.parse(globalSettingsRaw).maintenanceMode : false;
-    const isRestrictedRole = ![UserRole.SUPER_ADMIN, UserRole.CAMPUS_ADMIN].includes(role);
-
-    if (isMaintenance && isRestrictedRole) {
-        setError('El sistema se encuentra temporalmente fuera de servicio por mantenimiento.');
-        return;
-    }
     
     try {
         await login(email, password, role);
@@ -70,21 +61,21 @@ const LoginPage: React.FC = () => {
 
   const generateSeedData = () => {
       const campusId = 'CAMP-01';
-      const campusName = 'Sede Central Educativa';
-      const campus = { id: campusId, name: campusName, address: 'Av. de la Educación #45', admin: 'Luis Salberto', teachers: 5, students: 35 };
+      const campusName = 'Campus Metropolitano';
+      const campus = { id: campusId, name: campusName, address: 'Sector Universitario #1', admin: 'Luis Salberto', teachers: 5, students: 35 };
       
       const admin = { 
           id: 'ADM-01', name: 'Luis Salberto', email: 'admin@local.com', role: UserRole.CAMPUS_ADMIN, 
           campusId, campusName, status: 'active', avatar: 'https://ui-avatars.com/api/?name=Luis+Salberto&background=005A9C&color=fff' 
       };
       
-      // 5 Profesores con especialidades
+      // 5 Profesores especialistas en Espacios Académicos específicos del PDF
       const teacherSpecs = [
-          { name: 'Carlos Rodriguez', sub: 'Matemáticas', email: 'carlos@local.com' },
-          { name: 'Ana Martínez', sub: 'Español', email: 'ana@local.com' },
-          { name: 'Roberto Gómez', sub: 'Ciencias Naturales', email: 'roberto@local.com' },
-          { name: 'Elena Pineda', sub: 'Inglés', email: 'elena@local.com' },
-          { name: 'Ricardo Serna', sub: 'Ciencias Sociales', email: 'profe@local.com' }
+          { name: 'Carlos Rodriguez', faculty: 'Innovación', program: 'Publicidad', subject: 'Técnicas de aprendizaje', email: 'carlos@local.com' },
+          { name: 'Ana Martínez', faculty: 'Ingeniería', program: 'Ingenieria de Sistemas', subject: 'Matemáticas básicas', email: 'ana@local.com' },
+          { name: 'Roberto Gómez', faculty: 'Innovación', program: 'Publicidad', subject: 'Excel nivel básico', email: 'roberto@local.com' },
+          { name: 'Elena Pineda', faculty: 'Ingeniería', program: 'Ingenieria de Sistemas', subject: 'Sistemas operativos - linux', email: 'elena@local.com' },
+          { name: 'Ricardo Serna', faculty: 'Ciencias Administrativas y Contables', program: 'Contaduría Pública', subject: 'Contabilidad I', email: 'profe@local.com' }
       ];
 
       const teachers = teacherSpecs.map((t, i) => ({
@@ -97,15 +88,20 @@ const LoginPage: React.FC = () => {
           status: 'active',
           avatar: `https://ui-avatars.com/api/?name=${t.name.replace(' ', '+')}&background=random`,
           documentNumber: `100${i+1}`,
-          subject: t.sub,
-          phone: `300100000${i+1}`
+          subject: t.subject, // Este es el "Espacio Académico"
+          phone: `300100000${i+1}`,
+          observation: `Facultad de ${t.faculty} - ${t.program}`
       }));
 
-      // Grados de prueba: 7-1, 8-1, 9-1, 10-1, 11-1
-      const gradesList = ['7', '8', '9', '10', '11'];
-      const section = '1';
+      // Programas y Semestres para los 5 grupos de prueba
+      const groups = [
+          { program: 'Publicidad', semester: '1' },
+          { program: 'Ingenieria de Sistemas', semester: '1' },
+          { program: 'Contaduría Pública', semester: '1' },
+          { program: 'Publicidad', semester: '2' },
+          { program: 'Ingenieria de Sistemas', semester: '2' }
+      ];
 
-      // 35 Estudiantes distribuidos (7 por cada grupo: 7*5=35)
       const firstNames = ['Juan', 'Maria', 'Pedro', 'Lucia', 'Mateo', 'Sofia', 'Diego', 'Valentina', 'Andres', 'Camila', 'Luis', 'Elena', 'Jose', 'Paula', 'Gabriel', 'Isabella', 'Ricardo', 'Mariana', 'Javier', 'Daniela'];
       const lastNames = ['García', 'López', 'Martínez', 'Rodríguez', 'Pérez', 'Sánchez', 'González', 'Gómez', 'Fernández', 'Díaz', 'Torres', 'Ramírez', 'Vargas', 'Castillo', 'Jiménez', 'Moreno', 'Rojas', 'Mendoza', 'Cruz', 'Ortiz'];
 
@@ -116,8 +112,8 @@ const LoginPage: React.FC = () => {
       const gradesData: any[] = [];
 
       let studentCount = 1;
-      gradesList.forEach((grade, gIdx) => {
-          // 7 Estudiantes por grupo para llegar a 35 total
+      groups.forEach((group, gIdx) => {
+          // 7 Estudiantes por cada Programa/Semestre
           for (let sNum = 1; sNum <= 7; sNum++) {
               const fName = firstNames[Math.floor(Math.random() * firstNames.length)];
               const lName = lastNames[Math.floor(Math.random() * lastNames.length)];
@@ -134,18 +130,17 @@ const LoginPage: React.FC = () => {
                   status: 'active',
                   avatar: `https://ui-avatars.com/api/?name=${fName}+${lName}&background=random`,
                   documentNumber: `200${studentCount}`,
-                  class: grade,
-                  section: section,
-                  rollNumber: `${grade}${section}${String(sNum).padStart(2, '0')}`,
+                  class: group.program, // Nombre del Programa
+                  section: group.semester, // Número del Semestre
+                  rollNumber: `${group.program.substring(0,3)}${group.semester}${String(sNum).padStart(2, '0')}`,
                   schoolPeriod: 'A',
                   schoolYear: 2025
               });
 
-              // Crear un padre cada 7 estudiantes (uno por grupo)
               if (sNum === 1) {
                   parents.push({
                       id: `PAR-${studentCount}`,
-                      name: `Padre de ${fName}`,
+                      name: `Acudiente de ${fName}`,
                       email: `padre${studentCount}@local.com`,
                       role: UserRole.PARENT,
                       campusId,
@@ -158,55 +153,62 @@ const LoginPage: React.FC = () => {
           }
       });
 
-      // Asignaciones y Horarios (Cruce automático optimizado para 5 profes y 5 grupos)
+      // Generar Carga Académica (Asignaciones) y Horarios
+      // Vinculamos profesores con los programas/semestres donde se dicta su materia según PDF
       teachers.forEach((teacher, tIdx) => {
-          gradesList.forEach((grade, gIdx) => {
-              const assId = `ASS-${teacher.id}-${grade}`;
+          // Buscamos qué grupos (Programa/Semestre) deben ver esta materia
+          const targetGroups = groups.filter(g => {
+              if (teacher.subject === 'Técnicas de aprendizaje') return g.semester === '1'; // Común en 1er sem
+              if (teacher.subject === 'Matemáticas básicas') return g.semester === '1';
+              if (teacher.subject === 'Excel nivel básico') return g.semester === '1';
+              return true; // Simplificación: los demás dictan en cualquier semestre de su área
+          });
+
+          targetGroups.forEach((group, tgIdx) => {
+              const assId = `ASS-${teacher.id}-${group.program}-${group.semester}`;
               assignments.push({
                   id: assId,
                   teacherId: teacher.id,
                   subject: teacher.subject,
-                  class: grade,
-                  section: section,
+                  class: group.program,
+                  section: group.semester,
                   jornada: 'Diurno',
                   intensidadHoraria: 4
               });
 
-              // Horario: Desplazamiento circular para que cada grupo tenga a los 5 profes en días diferentes
-              // tIdx = profesor (0-4), gIdx = grupo (0-4)
-              // Dia = (tIdx + gIdx) % 5 + 1 (Lunes a Viernes)
-              const day = ((tIdx + gIdx) % 5) + 1;
+              // Horario (Lunes a Viernes)
+              const day = ((tIdx + tgIdx) % 5) + 1;
               schedules.push({
                   id: `SCH-${assId}`,
                   teacherId: teacher.id,
                   dayOfWeek: day,
-                  startTime: `${7 + gIdx}:00`, // Diferentes bloques horarios por grupo para realismo
-                  endTime: `${8 + gIdx}:00`,
+                  startTime: `${8 + tgIdx}:00`,
+                  endTime: `${9 + tgIdx}:00`,
                   subject: teacher.subject,
-                  class: grade,
-                  section: section
+                  class: group.program,
+                  section: group.semester
               });
           });
       });
 
-      // Notas iniciales para poblar Ranking y Gráficas
-      students.forEach((student, sIdx) => {
-          // El estudiante recibe notas de sus profesores correspondientes
-          teachers.forEach(teacher => {
+      // Generar Calificaciones (Notas)
+      students.forEach(student => {
+          const studentAssignments = assignments.filter(a => a.class === student.class && a.section === student.section);
+          studentAssignments.forEach(ass => {
               gradesData.push({
-                  id: `GRD-${student.id}-${teacher.id}`,
+                  id: `GRD-${student.id}-${ass.id}`,
                   studentId: student.id,
-                  subject: teacher.subject,
+                  subject: ass.subject,
                   class: student.class,
-                  assignmentTitle: 'Evaluación Parcial',
-                  score: 3.2 + (Math.random() * 1.8), // Notas entre 3.2 y 5.0
-                  percentage: 25,
+                  assignmentTitle: 'Actividad de Clase',
+                  score: 3.5 + (Math.random() * 1.5), 
+                  percentage: 20,
                   date: new Date().toISOString().split('T')[0]
               });
           });
       });
 
-      // Persistir en LocalStorage
+      // Persistencia
       localStorage.setItem('school_campuses', JSON.stringify([campus]));
       localStorage.setItem('school_admins', JSON.stringify([admin]));
       localStorage.setItem('school_teachers', JSON.stringify(teachers));
@@ -215,10 +217,10 @@ const LoginPage: React.FC = () => {
       localStorage.setItem('teacher_assignments', JSON.stringify(assignments));
       localStorage.setItem('school_schedules', JSON.stringify(schedules));
       localStorage.setItem('school_grades', JSON.stringify(gradesData));
-      localStorage.setItem('school_events', JSON.stringify([{ id: 'E-01', title: 'Inducción Año Escolar', date: '2025-02-15', campusId, description: 'Bienvenida a estudiantes nuevos y antiguos.' }]));
+      localStorage.setItem('school_events', JSON.stringify([{ id: 'E-01', title: 'Inducción Académica 2025', date: '2025-02-15', campusId, description: 'Presentación de facultades y programas.' }]));
 
       setShowDemoUsers(true);
-      alert('¡Entorno de Pruebas Robusto Generado!\n- 5 Profesores\n- 35 Estudiantes (7 por grado de 7° a 11°)\n- Horarios cruzados L-V\n- Notas iniciales cargadas.');
+      alert('¡Entorno Académico Superior Generado!\n- Estructura: Facultad > Programa > Semestre\n- 5 Profesores con materias del documento.\n- 35 Estudiantes en 5 programas/semestres diferentes.\n- Horarios y notas cargados.');
       window.location.reload();
   };
 
@@ -237,12 +239,12 @@ const LoginPage: React.FC = () => {
               <div className="bg-white p-3 rounded-2xl shadow-lg inline-block mb-4 dark:bg-slate-800">
                 <img 
                     src={schoolLogo} 
-                    alt="School Logo" 
+                    alt="Logo" 
                     className="w-20 h-20 object-contain" 
                 />
               </div>
               <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600 dark:from-blue-400 dark:to-indigo-400 pb-1">{schoolName}</h1>
-              <p className="text-text-secondary text-sm mt-2 dark:text-slate-400 font-medium">Acceso Administrativo y Académico</p>
+              <p className="text-text-secondary text-sm mt-2 dark:text-slate-400 font-medium">Gestión de Facultades y Programas</p>
           </div>
           <Card className="shadow-2xl border-none">
             <form onSubmit={handleLogin}>
@@ -254,7 +256,7 @@ const LoginPage: React.FC = () => {
               )}
               <div className="mb-4">
                 <label className="block text-gray-700 text-xs font-bold mb-2 uppercase tracking-wider dark:text-slate-300" htmlFor="email">
-                  Correo Electrónico
+                  Correo Institucional
                 </label>
                 <input
                   id="email"
@@ -262,7 +264,7 @@ const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(''); }}
                   className="shadow-sm appearance-none border border-gray-200 rounded-lg w-full py-2.5 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all dark:bg-slate-700 dark:border-slate-600 dark:text-white placeholder-gray-400"
-                  placeholder="ejemplo@correo.com"
+                  placeholder="ejemplo@universidad.edu"
                 />
               </div>
               <div className="mb-4 relative">
@@ -291,7 +293,7 @@ const LoginPage: React.FC = () => {
               </div>
               <div className="mb-6">
                 <label className="block text-gray-700 text-xs font-bold mb-2 uppercase tracking-wider dark:text-slate-300" htmlFor="role">
-                  Rol de Usuario
+                  Perfil de Acceso
                 </label>
                 <div className="relative">
                     <select
@@ -304,66 +306,52 @@ const LoginPage: React.FC = () => {
                         <option key={r} value={r}>{r}</option>
                     ))}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
-                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                    </div>
                 </div>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <button
-                  className="w-full bg-gradient-to-r from-primary to-blue-600 text-white font-bold py-2.5 px-4 rounded-lg focus:outline-none focus:shadow-outline hover:shadow-lg hover:from-blue-700 hover:to-primary transition-all duration-300 text-sm transform hover:-translate-y-0.5"
+                  className="w-full bg-gradient-to-r from-primary to-blue-600 text-white font-bold py-2.5 px-4 rounded-lg focus:outline-none shadow-lg hover:from-blue-700 hover:to-primary transition-all duration-300 text-sm"
                   type="submit"
                 >
-                  Ingresar
+                  Iniciar Sesión
                 </button>
               </div>
             </form>
 
             <div className="my-5 flex items-center before:flex-1 before:border-t before:border-gray-200 before:mt-0.5 after:flex-1 after:border-t after:border-gray-200 after:mt-0.5 dark:before:border-slate-700 dark:after:border-slate-700">
-                <p className="text-center font-medium mx-4 mb-0 text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wide">O continúa con</p>
+                <p className="text-center font-medium mx-4 mb-0 text-xs text-gray-400 dark:text-slate-500 uppercase">O</p>
             </div>
 
             <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-200 rounded-lg shadow-sm text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 dark:border-slate-600 transition-all"
+                className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-200 rounded-lg shadow-sm text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 dark:bg-slate-700 dark:text-white transition-all"
             >
                 <GoogleIcon className="w-5 h-5 mr-3" />
-                Google Workspace
+                Acceso Institucional Google
             </button>
           </Card>
         </div>
 
         <div className="w-full max-w-4xl mt-10 p-6 border-t border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl text-center">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-slate-200 mb-2">Entorno de Pruebas Robusto</h3>
-            <p className="text-xs text-gray-500 mb-5 dark:text-slate-400">Genera 5 profesores especialistas y 35 estudiantes distribuidos en 5 grados (7° a 11°).</p>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-slate-200 mb-2">Entorno de Pruebas Superior</h3>
+            <p className="text-xs text-slate-500 mb-5 dark:text-slate-400">Genera 5 docentes y 35 estudiantes distribuidos en Programas y Semestres reales.</p>
             
             <button 
                 onClick={generateSeedData} 
-                className="group flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl transition-all text-sm font-bold shadow-lg hover:shadow-emerald-500/20 mx-auto"
+                className="group flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl transition-all text-sm font-bold shadow-lg mx-auto"
             >
                 <DatabaseIcon className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                {showDemoUsers ? 'Regenerar Base de Datos Completa' : 'Generar Entorno Académico (35 Est)'}
+                {showDemoUsers ? 'Regenerar Base Académica' : 'Generar Entorno Superior (35 Est)'}
             </button>
 
             {showDemoUsers && (
                 <div className="mt-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                            { role: 'Admin', email: 'admin@local.com', uRole: UserRole.CAMPUS_ADMIN, color: 'text-primary' },
-                            { role: 'Profesor', email: 'profe@local.com', uRole: UserRole.TEACHER, color: 'text-blue-600' },
-                            { role: 'Estudiante', email: 'estudiante1@local.com', uRole: UserRole.STUDENT, color: 'text-orange-600' },
-                            { role: 'Padre', email: 'padre1@local.com', uRole: UserRole.PARENT, color: 'text-purple-600' }
-                        ].map((item) => (
-                            <div 
-                                key={item.email}
-                                onClick={() => quickLogin(item.email, item.uRole)} 
-                                className="bg-white dark:bg-slate-700 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-slate-600 cursor-pointer hover:scale-105 transition-all text-left group"
-                            >
-                                <p className={`font-bold ${item.color} text-xs mb-1 group-hover:underline`}>{item.role}</p>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{item.email}</p>
-                            </div>
-                        ))}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-bold">
+                        <div onClick={() => quickLogin('admin@local.com', UserRole.CAMPUS_ADMIN)} className="bg-white dark:bg-slate-700 p-3 rounded-xl shadow-sm cursor-pointer hover:scale-105 transition-all text-primary">Admin Campus</div>
+                        <div onClick={() => quickLogin('profe@local.com', UserRole.TEACHER)} className="bg-white dark:bg-slate-700 p-3 rounded-xl shadow-sm cursor-pointer hover:scale-105 transition-all text-blue-600">Profesor Contaduría</div>
+                        <div onClick={() => quickLogin('estudiante1@local.com', UserRole.STUDENT)} className="bg-white dark:bg-slate-700 p-3 rounded-xl shadow-sm cursor-pointer hover:scale-105 transition-all text-orange-600">Estudiante Publicidad</div>
+                        <div onClick={() => quickLogin('padre1@local.com', UserRole.PARENT)} className="bg-white dark:bg-slate-700 p-3 rounded-xl shadow-sm cursor-pointer hover:scale-105 transition-all text-purple-600">Acudiente Sistemas</div>
                     </div>
                 </div>
             )}

@@ -81,8 +81,8 @@ const BulkUploadModal: React.FC<{
     const [campusId, setCampusId] = useState(user?.role === UserRole.SUPER_ADMIN ? (campuses[0]?.id || '') : (user?.campusId || ''));
 
     const downloadTemplate = () => {
-        const headers = "nombre,documento,correo,telefono,grado,grupo\n";
-        const example = "Juan Perez,12345678,juan@ejemplo.com,3001234567,7,1\n";
+        const headers = "nombre,documento,correo,telefono,programa,semestre\n";
+        const example = "Juan Perez,12345678,juan@ejemplo.com,3001234567,Publicidad,1\n";
         const blob = new Blob([headers + example], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
@@ -140,7 +140,7 @@ const BulkUploadModal: React.FC<{
                                 <DownloadIcon className="w-4 h-4"/> Formato requerido (CSV):
                             </p>
                             <code className="text-[10px] block bg-white dark:bg-slate-800 p-2 rounded border dark:border-slate-700 dark:text-slate-300">
-                                nombre, documento, correo, telefono, grado, grupo
+                                nombre, documento, correo, telefono, programa, semestre
                             </code>
                         </div>
                         <button 
@@ -228,9 +228,9 @@ const StudentFormModal: React.FC<{
     };
 
     const gradeOptions = [
-        { category: 'Preescolar', grades: ['Pre jardín', 'Jardín', 'Transición'] },
-        { category: 'Primaria', grades: ['1ro', '2do', '3ro', '4to', '5to'] },
-        { category: 'Secundaria', grades: ['6', '7', '8', '9', '10', '11'] }
+        { category: 'Innovación', grades: ['Publicidad', 'Marketing Internacional'] },
+        { category: 'Ingeniería', grades: ['Ingenieria de Sistemas', 'Ingenieria Industrial', 'Diseño Industrial'] },
+        { category: 'Ciencias Administrativas', grades: ['Contaduría Pública', 'Administración de Empresas'] }
     ];
 
     return (
@@ -265,7 +265,7 @@ const StudentFormModal: React.FC<{
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Grado *</label>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Programa *</label>
                             <select name="class" value={formData.class} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
                                 {gradeOptions.map(cat => (
@@ -276,10 +276,10 @@ const StudentFormModal: React.FC<{
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Grupo *</label>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Semestre *</label>
                             <select name="section" value={formData.section} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
-                                {['A', 'B', 'C', '1', '2', '3'].map(s => <option key={s} value={s}>{s}</option>)}
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => <option key={s} value={s.toString()}>Semestre {s}</option>)}
                             </select>
                         </div>
                         <div>
@@ -340,16 +340,12 @@ const ViewStudentModal: React.FC<any> = ({ student, onClose }) => (
                 <div>
                     <p className="text-gray-500 text-xs uppercase font-bold">Ubicación Académica</p>
                     <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold mt-1">
-                        {student.class} - {student.section}
+                        {student.class} - Semestre {student.section}
                     </span>
                 </div>
                 <div>
                     <p className="text-gray-500 text-xs uppercase font-bold">Sede</p>
                     <p className="font-semibold text-gray-800 dark:text-white">{student.campusName}</p>
-                </div>
-                <div>
-                    <p className="text-gray-500 text-xs uppercase font-bold">Dirección de Residencia</p>
-                    <p className="font-semibold text-gray-800 dark:text-white">{student.address || '-'}</p>
                 </div>
             </div>
             <div className="mt-6 text-right">
@@ -402,7 +398,6 @@ const StudentManagementPage: React.FC = () => {
 
     const handleSaveStudent = async (studentData: any) => {
         try {
-            // Ensure campus data is present
             let finalData = { ...studentData };
             
             if (user?.role === UserRole.CAMPUS_ADMIN) {
@@ -493,7 +488,6 @@ const StudentManagementPage: React.FC = () => {
             <Card className="flex flex-col h-full border-none shadow-none bg-transparent p-0">
                 <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col">
                     
-                    {/* Modern Header */}
                     <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-slate-900">
                         <div>
                             <h2 className="font-bold text-xl text-slate-800 dark:text-white flex items-center gap-3">
@@ -502,7 +496,7 @@ const StudentManagementPage: React.FC = () => {
                                 </div>
                                 Gestión de Estudiantes
                             </h2>
-                            <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración de matrículas y perfiles académicos.</p>
+                            <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración de programas y perfiles académicos.</p>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -535,7 +529,7 @@ const StudentManagementPage: React.FC = () => {
                                 <tr>
                                     <th className="px-6 py-4">Nombre Completo</th>
                                     <th className="px-6 py-4">Documento</th>
-                                    <th className="px-6 py-4">Grado</th>
+                                    <th className="px-6 py-4">Programa / Semestre</th>
                                     {user?.role === UserRole.SUPER_ADMIN && <th className="px-6 py-4">Sede</th>}
                                     <th className="px-6 py-4">Estado</th>
                                     <th className="px-6 py-4 text-right">Acciones</th>
@@ -556,7 +550,7 @@ const StudentManagementPage: React.FC = () => {
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-mono text-xs">{student.documentNumber}</td>
                                             <td className="px-6 py-4">
                                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-                                                    {student.class} <span className="mx-1 opacity-50">|</span> {student.section}
+                                                    {student.class} <span className="mx-1 opacity-50">|</span> Semestre {student.section}
                                                 </span>
                                             </td>
                                             {user?.role === UserRole.SUPER_ADMIN && <td className="px-6 py-4 text-slate-600">{student.campusName}</td>}
