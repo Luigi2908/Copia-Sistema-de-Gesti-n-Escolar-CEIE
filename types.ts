@@ -23,9 +23,19 @@ export interface AdminUser extends User {
     status: 'active' | 'inactive';
 }
 
+export interface AcademicHistory {
+    semester: string;
+    year: number;
+    period: string;
+    gpa: number;
+    status: 'Aprobado' | 'Reprobado';
+    details: { subject: string; finalGrade: number }[];
+    completionDate: string;
+}
+
 export interface Student extends User {
-    class: string;
-    section: string;
+    class: string; // Programa
+    section: string; // Semestre actual
     rollNumber: string;
     schoolPeriod: 'A' | 'B';
     schoolYear: number;
@@ -38,6 +48,7 @@ export interface Student extends User {
     fatherPhone?: string;
     motherName?: string;
     motherPhone?: string;
+    history?: AcademicHistory[]; // Historial de semestres anteriores
 }
 
 export type ProfessionalProfile = 'Profesional' | 'Especialista' | 'Magister' | 'Doctor';

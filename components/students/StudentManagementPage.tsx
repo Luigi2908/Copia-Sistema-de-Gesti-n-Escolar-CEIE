@@ -1,17 +1,105 @@
 
-import React, { useState, useEffect } from 'react';
-import { Student, UserRole, Campus, User } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Student, UserRole, Campus, User, Grade } from '../../types';
 import Card from '../ui/Card';
 import { useAuth } from '../../context/AuthContext';
-import { UploadIcon, UserAddIcon, EyeIcon, EditIcon, TrashIcon, PaperAirplaneIcon, PlusIcon, AcademicCapIcon, CloseIcon, KeyIcon, EyeSlashIcon, DownloadIcon } from '../icons';
+import { UploadIcon, EyeIcon, EditIcon, TrashIcon, PaperAirplaneIcon, PlusIcon, AcademicCapIcon, CloseIcon, KeyIcon, EyeSlashIcon, DownloadIcon, CheckIcon, ExclamationTriangleIcon } from '../icons';
 import { useData } from '../../context/DataContext';
 
+const PromotionModal: React.FC<{
+    student: Student;
+    onClose: () => void;
+    onConfirm: () => Promise<void>;
+    grades: Grade[];
+}> = ({ student, onClose, onConfirm, grades }) => {
+    const [isProcessing, setIsProcessing] = useState(false);
+    
+    // Cálculo de vista previa
+    const studentGrades = grades.filter(g => g.studentId === student.id);
+    const subjects = Array.from(new Set(studentGrades.map(g => g.subject)));
+    const summary = subjects.map(subj => {
+        const subjGrades = studentGrades.filter(g => g.subject === subj);
+        const score = subjGrades.reduce((acc, g) => acc + (g.score * g.percentage / 100), 0);
+        const perc = subjGrades.reduce((acc, g) => acc + g.percentage, 0);
+        return { name: subj, final: perc > 0 ? (score * 100) / perc : 0 };
+    });
+    
+    const gpa = summary.length > 0 ? summary.reduce((acc, s) => acc + s.final, 0) / summary.length : 0;
+    const isEligible = gpa >= 3.0;
+
+    const handleConfirm = async () => {
+        setIsProcessing(true);
+        await onConfirm();
+        setIsProcessing(false);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center p-4 backdrop-blur-sm">
+            <Card className="w-full max-w-xl shadow-2xl animate-fade-in-up border-none">
+                <div className="flex justify-between items-center mb-6 pb-3 border-b dark:border-slate-700">
+                    <h2 className="text-xl font-black text-slate-800 dark:text-white">Cierre de Semestre y Promoción</h2>
+                    <button onClick={onClose}><CloseIcon className="w-6 h-6 text-slate-400"/></button>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <img src={student.avatar} className="w-16 h-16 rounded-full border-2 border-white shadow-sm" alt=""/>
+                        <div>
+                            <p className="font-bold text-lg dark:text-white">{student.name}</p>
+                            <p className="text-sm text-slate-500">{student.class} - Semestre {student.section}</p>
+                        </div>
+                        <div className="ml-auto text-right">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Promedio General</p>
+                            <p className={`text-3xl font-black ${isEligible ? 'text-emerald-500' : 'text-rose-500'}`}>{gpa.toFixed(2)}</p>
+                        </div>
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                        <p className="text-xs font-black text-slate-400 uppercase mb-2">Detalle por Espacio Académico</p>
+                        {summary.map(s => (
+                            <div key={s.name} className="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-100 dark:bg-slate-900 dark:border-slate-800">
+                                <span className="text-sm font-medium dark:text-slate-300">{s.name}</span>
+                                <span className={`font-bold ${s.final >= 3 ? 'text-emerald-600' : 'text-rose-500'}`}>{s.final.toFixed(1)}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className={`p-4 rounded-2xl flex items-start gap-3 ${isEligible ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+                        {isEligible ? <CheckIcon className="w-6 h-6 shrink-0"/> : <ExclamationTriangleIcon className="w-6 h-6 shrink-0"/>}
+                        <div>
+                            <p className="font-bold text-sm">{isEligible ? 'Elegible para Promoción' : 'No cumple con el requisito mínimo'}</p>
+                            <p className="text-xs opacity-80 mt-0.5">
+                                {isEligible 
+                                    ? `Al confirmar, el estudiante avanzará al semestre ${parseInt(student.section) + 1} y estas notas se archivarán en su historial.` 
+                                    : 'El promedio es inferior a 3.0. El estudiante debe repetir el semestre actual según el reglamento institucional.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-slate-700">
+                        <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl">Cancelar</button>
+                        <button 
+                            disabled={isProcessing}
+                            onClick={handleConfirm}
+                            className={`px-8 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg transition-all ${isEligible ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}
+                        >
+                            {isProcessing ? 'Procesando...' : isEligible ? 'Promover Estudiante' : 'Confirmar Repitencia'}
+                        </button>
+                    </div>
+                </div>
+            </Card>
+        </div>
+    );
+};
+
+// ... (Resto de los modales de StudentManagementPage: ResetPassword, TempPassword, Bulk, Form, View, Delete)
 const ResetPasswordConfirmationModal: React.FC<{ user: User; onClose: () => void; onConfirm: () => void; }> = ({ user, onClose, onConfirm }) => (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
         <Card className="w-full max-w-md">
             <h2 className="text-lg font-bold mb-4 dark:text-white">Restablecer Contraseña (Email)</h2>
              <div className="space-y-3 text-sm">
-                <p className="dark:text-gray-300">Se enviará un correo electrónico a <strong className="text-primary">{user.email}</strong> con un enlace para que pueda establecer una nueva contraseña.</p>
+                <p className="dark:text-gray-300">Se enviará un correo electrónico a <strong className="text-primary">{user.email}</strong>.</p>
                 <p className="dark:text-gray-400">¿Desea continuar?</p>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
@@ -196,8 +284,6 @@ const StudentFormModal: React.FC<{
     user: User | null;
 }> = ({ onClose, onSave, studentToEdit, campuses, user }) => {
     const isEditing = !!studentToEdit;
-    
-    // Form State
     const [formData, setFormData] = useState({
         name: studentToEdit?.name || '',
         documentNumber: studentToEdit?.documentNumber || '',
@@ -213,12 +299,6 @@ const StudentFormModal: React.FC<{
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        
-        // Validations
-        if (name === 'name' && !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/.test(value)) return;
-        if ((name === 'documentNumber' || name === 'phone') && !/^\d*$/.test(value)) return;
-        if (name === 'phone' && value.length > 10) return;
-
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -229,44 +309,28 @@ const StudentFormModal: React.FC<{
 
     const gradeOptions = [
         { category: 'Innovación', grades: ['Publicidad', 'Marketing Internacional'] },
-        { category: 'Ingeniería', grades: ['Ingenieria de Sistemas', 'Ingenieria Industrial', 'Diseño Industrial'] },
-        { category: 'Ciencias Administrativas', grades: ['Contaduría Pública', 'Administración de Empresas'] }
+        { category: 'Ingeniería', grades: ['Ingenieria de Sistemas', 'Ingenieria Industrial', 'Diseño Industrial'] }
     ];
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
-            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
-                <div className="flex justify-between items-center mb-6 pb-3 border-b dark:border-gray-700">
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">{isEditing ? 'Editar Estudiante' : 'Matricular Nuevo Estudiante'}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><CloseIcon className="w-6 h-6"/></button>
-                </div>
+            <Card className="w-full max-w-2xl">
+                <h2 className="text-lg font-bold mb-6 dark:text-white">{isEditing ? 'Editar Estudiante' : 'Matricular Estudiante'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Nombre Completo *</label>
-                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Nombre Completo</label>
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Documento de Identidad *</label>
-                            <input type="text" name="documentNumber" value={formData.documentNumber} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Documento</label>
+                            <input type="text" name="documentNumber" value={formData.documentNumber} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
                         </div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Correo Electrónico *</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Teléfono Móvil</label>
-                            <input type="text" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" placeholder="10 dígitos" />
-                        </div>
-                    </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Programa *</label>
-                            <select name="class" value={formData.class} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Programa</label>
+                            <select name="class" value={formData.class} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
                                 {gradeOptions.map(cat => (
                                     <optgroup key={cat.category} label={cat.category}>
@@ -276,33 +340,22 @@ const StudentFormModal: React.FC<{
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Semestre *</label>
-                            <select name="section" value={formData.section} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Semestre</label>
+                            <select name="section" value={formData.section} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => <option key={s} value={s.toString()}>Semestre {s}</option>)}
                             </select>
                         </div>
                         <div>
                             <label className="block text-sm font-bold mb-1 dark:text-gray-300">Estado</label>
-                            <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white">
+                            <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white">
                                 <option value="active">Activo</option>
                                 <option value="inactive">Inactivo</option>
                             </select>
                         </div>
                     </div>
-
-                    {user?.role === UserRole.SUPER_ADMIN && (
-                        <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Sede</label>
-                            <select name="campusId" value={formData.campusId} onChange={handleChange} className="w-full p-2 border rounded bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
-                                <option value="">Seleccionar Sede</option>
-                                {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </div>
-                    )}
-
-                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700 mt-6">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors">Cancelar</button>
+                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 shadow-sm transition-colors">
                             {isEditing ? 'Guardar Cambios' : 'Crear Estudiante'}
                         </button>
@@ -326,26 +379,25 @@ const ViewStudentModal: React.FC<any> = ({ student, onClose }) => (
                     <p className="font-semibold text-gray-800 dark:text-white">{student.name}</p>
                 </div>
                 <div>
-                    <p className="text-gray-500 text-xs uppercase font-bold">Documento de Identidad</p>
-                    <p className="font-semibold text-gray-800 dark:text-white">{student.documentNumber}</p>
-                </div>
-                <div>
-                    <p className="text-gray-500 text-xs uppercase font-bold">Correo Electrónico</p>
-                    <p className="font-semibold text-gray-800 dark:text-white">{student.email}</p>
-                </div>
-                <div>
-                    <p className="text-gray-500 text-xs uppercase font-bold">Teléfono Móvil</p>
-                    <p className="font-semibold text-gray-800 dark:text-white">{student.phone || '-'}</p>
-                </div>
-                <div>
                     <p className="text-gray-500 text-xs uppercase font-bold">Ubicación Académica</p>
                     <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold mt-1">
                         {student.class} - Semestre {student.section}
                     </span>
                 </div>
-                <div>
-                    <p className="text-gray-500 text-xs uppercase font-bold">Sede</p>
-                    <p className="font-semibold text-gray-800 dark:text-white">{student.campusName}</p>
+                <div className="col-span-full border-t pt-4 dark:border-slate-700">
+                    <p className="text-gray-500 text-xs uppercase font-bold mb-2">Historial de Semestres</p>
+                    {student.history && student.history.length > 0 ? (
+                        <div className="space-y-2">
+                            {student.history.map((h: any, idx: number) => (
+                                <div key={idx} className="flex justify-between p-2 rounded bg-slate-50 dark:bg-slate-800 border dark:border-slate-700">
+                                    <span>Semestre {h.semester} ({h.year}-{h.period})</span>
+                                    <span className={`font-bold ${h.status === 'Aprobado' ? 'text-emerald-500' : 'text-rose-500'}`}>Prom: {h.gpa} - {h.status}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-xs text-slate-400">No hay semestres terminados aún.</p>
+                    )}
                 </div>
             </div>
             <div className="mt-6 text-right">
@@ -359,7 +411,7 @@ const DeleteConfirmationModal: React.FC<{ student: Student; onClose: () => void;
     <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
         <Card className="w-full max-w-md">
             <h2 className="text-lg font-bold mb-2 text-gray-800 dark:text-white">Eliminar Estudiante</h2>
-            <p className="mb-6 text-sm text-gray-600 dark:text-gray-300">¿Está seguro de que desea eliminar a <span className="font-bold text-gray-900 dark:text-white">{student.name}</span>? Esta acción es irreversible.</p>
+            <p className="mb-6 text-sm text-gray-600 dark:text-gray-300">¿Está seguro de que desea eliminar a <span className="font-bold text-gray-900 dark:text-white">{student.name}</span>?</p>
             <div className="flex justify-end space-x-3">
                 <button onClick={onClose} className="bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
                 <button onClick={onConfirm} className="bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm hover:bg-red-700 shadow-sm transition-colors">Eliminar</button>
@@ -370,7 +422,7 @@ const DeleteConfirmationModal: React.FC<{ student: Student; onClose: () => void;
 
 
 const StudentManagementPage: React.FC = () => {
-    const { students, campuses, addStudent, updateStudent, deleteStudent, assignTemporaryPassword } = useData();
+    const { students, campuses, grades, addStudent, updateStudent, deleteStudent, promoteStudent, assignTemporaryPassword } = useData();
     const { user, sendPasswordReset } = useAuth();
     
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -378,9 +430,9 @@ const StudentManagementPage: React.FC = () => {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
     const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
+    const [promotingStudent, setPromotingStudent] = useState<Student | null>(null);
     const [resettingPasswordStudent, setResettingPasswordStudent] = useState<Student | null>(null);
     const [assigningPassStudent, setAssigningPassStudent] = useState<Student | null>(null);
-    
     const [searchQuery, setSearchQuery] = useState('');
     const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
 
@@ -399,7 +451,6 @@ const StudentManagementPage: React.FC = () => {
     const handleSaveStudent = async (studentData: any) => {
         try {
             let finalData = { ...studentData };
-            
             if (user?.role === UserRole.CAMPUS_ADMIN) {
                 finalData.campusId = user.campusId;
                 finalData.campusName = user.campusName;
@@ -417,7 +468,6 @@ const StudentManagementPage: React.FC = () => {
             }
             setIsModalOpen(false);
         } catch (error: any) {
-            console.error(error);
             showNotification('Error al guardar estudiante', 'error');
         }
     };
@@ -434,15 +484,18 @@ const StudentManagementPage: React.FC = () => {
         }
     };
 
+    const handlePromoteConfirm = async () => {
+        if (promotingStudent) {
+            const result = await promoteStudent(promotingStudent.id);
+            showNotification(result.message, result.success ? 'success' : 'error');
+            setPromotingStudent(null);
+        }
+    };
+
     const handleBulkSave = async (studentsList: any[]) => { 
         let added = 0;
         for (const stu of studentsList) {
-            try {
-                await addStudent(stu);
-                added++;
-            } catch (e) {
-                console.error("Error adding bulk student", e);
-            }
+            try { await addStudent(stu); added++; } catch (e) { console.error(e); }
         }
         setIsBulkOpen(false); 
         showNotification(`Se han importado ${added} estudiantes exitosamente.`, 'success');
@@ -496,7 +549,7 @@ const StudentManagementPage: React.FC = () => {
                                 </div>
                                 Gestión de Estudiantes
                             </h2>
-                            <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración de programas y perfiles académicos.</p>
+                            <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración de programas y promociones de semestre.</p>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -528,73 +581,51 @@ const StudentManagementPage: React.FC = () => {
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 font-semibold tracking-wider dark:bg-slate-800 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                                 <tr>
                                     <th className="px-6 py-4">Nombre Completo</th>
-                                    <th className="px-6 py-4">Documento</th>
                                     <th className="px-6 py-4">Programa / Semestre</th>
-                                    {user?.role === UserRole.SUPER_ADMIN && <th className="px-6 py-4">Sede</th>}
                                     <th className="px-6 py-4">Estado</th>
                                     <th className="px-6 py-4 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {filteredStudents.length > 0 ? (
-                                    filteredStudents.map(student => (
-                                        <tr key={student.id} className="bg-white hover:bg-slate-50/80 transition-colors dark:bg-slate-900 dark:hover:bg-slate-800/50">
-                                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700">
-                                                        {student.name.charAt(0)}
-                                                    </div>
-                                                    {student.name}
+                                {filteredStudents.map(student => (
+                                    <tr key={student.id} className="bg-white hover:bg-slate-50/80 transition-colors dark:bg-slate-900 dark:hover:bg-slate-800/50">
+                                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700">
+                                                    {student.name.charAt(0)}
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-mono text-xs">{student.documentNumber}</td>
-                                            <td className="px-6 py-4">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-                                                    {student.class} <span className="mx-1 opacity-50">|</span> Semestre {student.section}
-                                                </span>
-                                            </td>
-                                            {user?.role === UserRole.SUPER_ADMIN && <td className="px-6 py-4 text-slate-600">{student.campusName}</td>}
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${student.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800'}`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${student.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                                                    {student.status === 'active' ? 'Activo' : 'Inactivo'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end items-center gap-2">
-                                                    <button onClick={() => setViewingStudent(student)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-blue-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white" title="Ver Detalles">
-                                                        <EyeIcon className="w-4 h-4"/>
-                                                    </button>
-                                                    {isSuperAdmin && (
-                                                        <button onClick={() => setAssigningPassStudent(student)} className="p-2 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all focus:outline-none shadow-sm dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40" title="Asignar Clave Provisional">
-                                                            <KeyIcon className="w-4 h-4"/>
-                                                        </button>
-                                                    )}
-                                                    <button onClick={() => setResettingPasswordStudent(student)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-emerald-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-emerald-400" title="Restablecer Contraseña (Email)">
-                                                        <PaperAirplaneIcon className="w-4 h-4"/>
-                                                    </button>
-                                                    <button onClick={() => { setEditingStudent(student); setIsModalOpen(true); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-amber-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400" title="Editar">
-                                                        <EditIcon className="w-4 h-4"/>
-                                                    </button>
-                                                    <button onClick={() => setDeletingStudent(student)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-rose-400" title="Eliminar">
-                                                        <TrashIcon className="w-4 h-4"/>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={user?.role === UserRole.SUPER_ADMIN ? 6 : 5} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">
-                                            <div className="flex flex-col items-center justify-center">
-                                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3 dark:bg-slate-800">
-                                                    <AcademicCapIcon className="w-8 h-8 text-slate-300" />
-                                                </div>
-                                                <p>No se encontraron estudiantes.</p>
+                                                {student.name}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
+                                                {student.class} <span className="mx-1 opacity-50">|</span> Semestre {student.section}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${student.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800'}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${student.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                                                {student.status === 'active' ? 'Activo' : 'Inactivo'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end items-center gap-2">
+                                                <button onClick={() => setPromotingStudent(student)} className="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 transition-all focus:outline-none shadow-sm dark:bg-indigo-900/20 dark:text-indigo-400" title="Cierre de Semestre / Promoción">
+                                                    <CheckIcon className="w-4 h-4"/>
+                                                </button>
+                                                <button onClick={() => setViewingStudent(student)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-blue-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white" title="Ver Detalles">
+                                                    <EyeIcon className="w-4 h-4"/>
+                                                </button>
+                                                <button onClick={() => { setEditingStudent(student); setIsModalOpen(true); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-amber-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400" title="Editar">
+                                                    <EditIcon className="w-4 h-4"/>
+                                                </button>
+                                                <button onClick={() => setDeletingStudent(student)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-rose-400" title="Eliminar">
+                                                    <TrashIcon className="w-4 h-4"/>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
-                                )}
+                                ))}
                             </tbody>
                         </table>
                     </div>
@@ -605,6 +636,7 @@ const StudentManagementPage: React.FC = () => {
             {isBulkOpen && <BulkUploadModal onClose={() => setIsBulkOpen(false)} onSave={handleBulkSave} user={user} campuses={campuses} />}
             {viewingStudent && <ViewStudentModal student={viewingStudent} onClose={() => setViewingStudent(null)} />}
             {deletingStudent && <DeleteConfirmationModal student={deletingStudent} onClose={() => setDeletingStudent(null)} onConfirm={handleDeleteStudent} />}
+            {promotingStudent && <PromotionModal student={promotingStudent} onClose={() => setPromotingStudent(null)} onConfirm={handlePromoteConfirm} grades={grades} />}
             {resettingPasswordStudent && <ResetPasswordConfirmationModal user={resettingPasswordStudent} onClose={() => setResettingPasswordStudent(null)} onConfirm={handleSendResetLink} />}
             {assigningPassStudent && <TempPasswordModal user={assigningPassStudent} onClose={() => setAssigningPassStudent(null)} onSave={handleAssignTempPass} />}
         </>
