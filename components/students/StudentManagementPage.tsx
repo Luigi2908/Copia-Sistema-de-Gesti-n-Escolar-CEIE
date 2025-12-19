@@ -1,10 +1,93 @@
 
 import React, { useState, useMemo } from 'react';
-import { Student, UserRole, Campus, User, Grade } from '../../types';
+import { Student, UserRole, Campus, User, Grade, FinancialStatus } from '../../types';
 import Card from '../ui/Card';
 import { useAuth } from '../../context/AuthContext';
-import { UploadIcon, EyeIcon, EditIcon, TrashIcon, PaperAirplaneIcon, PlusIcon, AcademicCapIcon, CloseIcon, KeyIcon, EyeSlashIcon, DownloadIcon, CheckIcon, ExclamationTriangleIcon } from '../icons';
+import { UploadIcon, EyeIcon, EditIcon, TrashIcon, PaperAirplaneIcon, PlusIcon, AcademicCapIcon, CloseIcon, KeyIcon, EyeSlashIcon, DownloadIcon, CheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ChevronRightIcon } from '../icons';
 import { useData } from '../../context/DataContext';
+
+const FinancialStatusModal: React.FC<{
+    student: Student;
+    onClose: () => void;
+    onSave: (status: FinancialStatus) => void;
+}> = ({ student, onClose, onSave }) => {
+    const [selectedStatus, setSelectedStatus] = useState<FinancialStatus>(student.financialStatus || 'Al día');
+
+    const statusOptions: { val: FinancialStatus; label: string; desc: string; color: string }[] = [
+        { 
+            val: 'Al día', 
+            label: 'Al día / Paz y Salvo', 
+            desc: 'El estudiante no presenta deudas. Habilitado para todos los procesos.',
+            color: 'bg-emerald-500' 
+        },
+        { 
+            val: 'Pendiente (Sensibilización)', 
+            label: 'Pendiente (Etapa 1)', 
+            desc: 'Saldos menores. Permite promoción con compromiso de pago.',
+            color: 'bg-amber-500' 
+        },
+        { 
+            val: 'Mora Crítica (Bloqueado)', 
+            label: 'Mora Crítica (Etapa 2)', 
+            desc: 'Incumplimiento grave. Bloquea automáticamente la promoción académica.',
+            color: 'bg-rose-500' 
+        }
+    ];
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-[80] flex justify-center items-center p-4 backdrop-blur-sm">
+            <Card className="w-full max-w-md shadow-2xl animate-fade-in-up border-none">
+                <div className="flex justify-between items-center mb-6 pb-2 border-b dark:border-slate-700">
+                    <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Gestión Financiera</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><CloseIcon className="w-6 h-6 text-slate-400"/></button>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 mb-4">
+                        <img src={student.avatar} className="w-10 h-10 rounded-full shadow-sm" alt=""/>
+                        <div>
+                            <p className="font-bold text-sm dark:text-white">{student.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">{student.class}</p>
+                        </div>
+                    </div>
+
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Seleccionar Nuevo Estado</p>
+                    
+                    <div className="space-y-2">
+                        {statusOptions.map((opt) => (
+                            <button
+                                key={opt.val}
+                                onClick={() => setSelectedStatus(opt.val)}
+                                className={`w-full flex items-start gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
+                                    selectedStatus === opt.val 
+                                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20' 
+                                    : 'border-slate-100 bg-white hover:border-slate-200 dark:bg-slate-900 dark:border-slate-800'
+                                }`}
+                            >
+                                <div className={`w-4 h-4 rounded-full mt-1 shrink-0 ${opt.color} ${selectedStatus === opt.val ? 'ring-4 ring-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : ''}`}></div>
+                                <div>
+                                    <p className={`font-bold text-sm ${selectedStatus === opt.val ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>{opt.label}</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{opt.desc}</p>
+                                </div>
+                                {selectedStatus === opt.val && <CheckIcon className="w-5 h-5 text-indigo-600 ml-auto self-center" />}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-6 mt-4 border-t dark:border-slate-700">
+                    <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
+                    <button 
+                        onClick={() => onSave(selectedStatus)} 
+                        className="px-8 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition-all text-sm"
+                    >
+                        Actualizar Estado
+                    </button>
+                </div>
+            </Card>
+        </div>
+    );
+};
 
 const PromotionModal: React.FC<{
     student: Student;
@@ -14,20 +97,29 @@ const PromotionModal: React.FC<{
 }> = ({ student, onClose, onConfirm, grades }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     
-    // Cálculo de vista previa
     const studentGrades = grades.filter(g => g.studentId === student.id);
     const subjects = Array.from(new Set(studentGrades.map(g => g.subject)));
+    
     const summary = subjects.map(subj => {
         const subjGrades = studentGrades.filter(g => g.subject === subj);
         const score = subjGrades.reduce((acc, g) => acc + (g.score * g.percentage / 100), 0);
         const perc = subjGrades.reduce((acc, g) => acc + g.percentage, 0);
-        return { name: subj, final: perc > 0 ? (score * 100) / perc : 0 };
+        return { 
+            name: subj, 
+            final: perc > 0 ? (score * 100) / perc : 0,
+            breakdown: subjGrades 
+        };
     });
     
     const gpa = summary.length > 0 ? summary.reduce((acc, s) => acc + s.final, 0) / summary.length : 0;
-    const isEligible = gpa >= 3.0;
+    const isAcademicEligible = gpa >= 3.0;
+
+    const financialStatus = student.financialStatus || 'Al día';
+    const isFinancialBlocked = financialStatus === 'Mora Crítica (Bloqueado)';
+    const isFinancialWarning = financialStatus === 'Pendiente (Sensibilización)';
 
     const handleConfirm = async () => {
+        if (isFinancialBlocked) return;
         setIsProcessing(true);
         await onConfirm();
         setIsProcessing(false);
@@ -36,64 +128,125 @@ const PromotionModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center p-4 backdrop-blur-sm">
-            <Card className="w-full max-w-xl shadow-2xl animate-fade-in-up border-none">
-                <div className="flex justify-between items-center mb-6 pb-3 border-b dark:border-slate-700">
-                    <h2 className="text-xl font-black text-slate-800 dark:text-white">Cierre de Semestre y Promoción</h2>
-                    <button onClick={onClose}><CloseIcon className="w-6 h-6 text-slate-400"/></button>
+            <Card className="w-full max-w-2xl shadow-2xl animate-fade-in-up border-none max-h-[90vh] flex flex-col overflow-hidden">
+                <div className="p-6 border-b dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-900 sticky top-0 z-20">
+                    <h2 className="text-xl font-black text-slate-800 dark:text-white">Verificación de Cierre y Promoción</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><CloseIcon className="w-6 h-6 text-slate-400"/></button>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                        <img src={student.avatar} className="w-16 h-16 rounded-full border-2 border-white shadow-sm" alt=""/>
-                        <div>
-                            <p className="font-bold text-lg dark:text-white">{student.name}</p>
-                            <p className="text-sm text-slate-500">{student.class} - Semestre {student.section}</p>
-                        </div>
-                        <div className="ml-auto text-right">
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Promedio General</p>
-                            <p className={`text-3xl font-black ${isEligible ? 'text-emerald-500' : 'text-rose-500'}`}>{gpa.toFixed(2)}</p>
-                        </div>
-                    </div>
-
-                    <div className="max-h-48 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-                        <p className="text-xs font-black text-slate-400 uppercase mb-2">Detalle por Espacio Académico</p>
-                        {summary.map(s => (
-                            <div key={s.name} className="flex justify-between items-center p-3 rounded-xl bg-white border border-slate-100 dark:bg-slate-900 dark:border-slate-800">
-                                <span className="text-sm font-medium dark:text-slate-300">{s.name}</span>
-                                <span className={`font-bold ${s.final >= 3 ? 'text-emerald-600' : 'text-rose-500'}`}>{s.final.toFixed(1)}</span>
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                    <div className="flex items-center gap-5 p-5 bg-gradient-to-br from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <img src={student.avatar} className="w-20 h-20 rounded-full border-4 border-white dark:border-slate-800 shadow-lg" alt=""/>
+                        <div className="flex-1">
+                            <p className="font-black text-xl text-slate-800 dark:text-white">{student.name}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full uppercase tracking-wider">{student.class}</span>
+                                <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">Semestre {student.section}</span>
                             </div>
-                        ))}
-                    </div>
-
-                    <div className={`p-4 rounded-2xl flex items-start gap-3 ${isEligible ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
-                        {isEligible ? <CheckIcon className="w-6 h-6 shrink-0"/> : <ExclamationTriangleIcon className="w-6 h-6 shrink-0"/>}
-                        <div>
-                            <p className="font-bold text-sm">{isEligible ? 'Elegible para Promoción' : 'No cumple con el requisito mínimo'}</p>
-                            <p className="text-xs opacity-80 mt-0.5">
-                                {isEligible 
-                                    ? `Al confirmar, el estudiante avanzará al semestre ${parseInt(student.section) + 1} y estas notas se archivarán en su historial.` 
-                                    : 'El promedio es inferior a 3.0. El estudiante debe repetir el semestre actual según el reglamento institucional.'}
-                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Promedio General</p>
+                            <p className={`text-4xl font-black ${isAcademicEligible ? 'text-emerald-500' : 'text-rose-500'}`}>{gpa.toFixed(2)}</p>
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-slate-700">
-                        <button onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl">Cancelar</button>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Validación Financiera</p>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${isFinancialBlocked ? 'border-rose-200 text-rose-600 bg-rose-50' : 'border-emerald-200 text-emerald-600 bg-emerald-50'}`}>
+                                {financialStatus}
+                            </span>
+                        </div>
+                        
+                        {isFinancialBlocked ? (
+                            <div className="bg-rose-50 text-rose-700 p-4 rounded-2xl border border-rose-200 flex items-start gap-4">
+                                <ExclamationTriangleIcon className="w-6 h-6 shrink-0 text-rose-500"/>
+                                <div className="text-sm">
+                                    <p className="font-bold uppercase tracking-tight">Bloqueo por Mora Crítica</p>
+                                    <p className="opacity-80 mt-0.5">El sistema ha inhabilitado la promoción. El estudiante no cumple con el requisito de paz y salvo institucional.</p>
+                                </div>
+                            </div>
+                        ) : isFinancialWarning && (
+                            <div className="bg-amber-50 text-amber-700 p-4 rounded-2xl border border-amber-200 flex items-start gap-4">
+                                <ExclamationTriangleIcon className="w-6 h-6 shrink-0 text-amber-500"/>
+                                <div className="text-sm">
+                                    <p className="font-bold uppercase tracking-tight">Sensibilización Requerida</p>
+                                    <p className="opacity-80 mt-0.5">Se permite el registro académico, pero se requiere citar a tesorería antes del inicio del nuevo semestre.</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4">
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Detalle por Espacio Académico</p>
+                        <div className="grid grid-cols-1 gap-4">
+                            {summary.map(s => (
+                                <div key={s.name} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden group hover:border-indigo-100 transition-colors">
+                                    <div className="p-4 flex justify-between items-center border-b border-slate-50 dark:border-slate-800 bg-slate-50/30">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-2 h-2 rounded-full ${s.final >= 3.0 ? 'bg-emerald-500 shadow-emerald-500/50 shadow-[0_0_8px]' : 'bg-rose-500 shadow-rose-500/50 shadow-[0_0_8px]'}`}></div>
+                                            <span className="text-sm font-black text-slate-700 dark:text-slate-200">{s.name}</span>
+                                        </div>
+                                        <span className={`text-base font-black px-3 py-1 rounded-xl ${s.final >= 3 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
+                                            {s.final.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="p-4 space-y-2">
+                                        {s.breakdown.map(gb => (
+                                            <div key={gb.id} className="flex justify-between items-center text-xs group/row">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
+                                                    <span className="text-slate-500 dark:text-slate-400 font-medium group-hover/row:text-slate-700 transition-colors">{gb.assignmentTitle}</span>
+                                                    <span className="text-[10px] font-bold text-slate-300">({gb.percentage}%)</span>
+                                                </div>
+                                                <span className={`font-black ${gb.score >= 3 ? 'text-slate-600 dark:text-slate-300' : 'text-rose-400'}`}>{gb.score.toFixed(1)}</span>
+                                            </div>
+                                        ))}
+                                        {s.breakdown.length === 0 && <p className="text-[10px] text-slate-400 italic">No hay actividades registradas en este espacio.</p>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {!isFinancialBlocked && (
+                        <div className={`p-5 rounded-3xl flex items-start gap-4 border transition-all ${isAcademicEligible ? 'bg-emerald-50 text-emerald-800 border-emerald-100' : 'bg-rose-50 text-rose-800 border-rose-100'}`}>
+                            <div className={`p-2 rounded-full ${isAcademicEligible ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white shadow-lg'}`}>
+                                {isAcademicEligible ? <CheckIcon className="w-6 h-6"/> : <ExclamationTriangleIcon className="w-6 h-6"/>}
+                            </div>
+                            <div className="text-sm">
+                                <p className="font-black uppercase tracking-tight">{isAcademicEligible ? 'Aprobado para Promoción' : 'Requisito Académico Insuficiente'}</p>
+                                <p className="opacity-80 mt-1 leading-relaxed">
+                                    {isAcademicEligible 
+                                        ? `El estudiante ha superado satisfactoriamente los espacios académicos. Está habilitado para avanzar al semestre ${parseInt(student.section) + 1}.` 
+                                        : 'El promedio general es inferior al mínimo requerido (3.0). El sistema registrará la repitencia del semestre actual.'}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t dark:border-slate-700 flex justify-end gap-3 sticky bottom-0 z-20">
+                    <button onClick={onClose} className="px-6 py-3 text-sm font-bold text-slate-500 hover:bg-white hover:shadow-sm rounded-2xl transition-all">Cancelar</button>
+                    {!isFinancialBlocked ? (
                         <button 
                             disabled={isProcessing}
                             onClick={handleConfirm}
-                            className={`px-8 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg transition-all ${isEligible ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}
+                            className={`px-10 py-3 text-sm font-black text-white rounded-2xl shadow-xl shadow-indigo-500/20 transform hover:-translate-y-0.5 active:translate-y-0 transition-all ${isAcademicEligible ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-rose-600 hover:bg-rose-700'}`}
                         >
-                            {isProcessing ? 'Procesando...' : isEligible ? 'Promover Estudiante' : 'Confirmar Repitencia'}
+                            {isProcessing ? 'Procesando...' : isAcademicEligible ? 'Ejecutar Promoción' : 'Confirmar Repitencia'}
                         </button>
-                    </div>
+                    ) : (
+                        <button disabled className="px-10 py-3 text-sm font-bold bg-slate-200 text-slate-400 rounded-2xl cursor-not-allowed">
+                            Promoción Bloqueada
+                        </button>
+                    )}
                 </div>
             </Card>
         </div>
     );
 };
 
-// ... (Resto de los modales de StudentManagementPage: ResetPassword, TempPassword, Bulk, Form, View, Delete)
 const ResetPasswordConfirmationModal: React.FC<{ user: User; onClose: () => void; onConfirm: () => void; }> = ({ user, onClose, onConfirm }) => (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
         <Card className="w-full max-w-md">
@@ -203,7 +356,8 @@ const BulkUploadModal: React.FC<{
                         campusId: campusId,
                         schoolPeriod: 'A',
                         schoolYear: 2025,
-                        status: 'active'
+                        status: 'active',
+                        financialStatus: 'Al día'
                     };
                 });
                 setParsedData(data);
@@ -292,6 +446,7 @@ const StudentFormModal: React.FC<{
         class: studentToEdit?.class || '',
         section: studentToEdit?.section || '',
         status: studentToEdit?.status || 'active',
+        financialStatus: studentToEdit?.financialStatus || 'Al día',
         campusId: studentToEdit?.campusId || (user?.role === UserRole.CAMPUS_ADMIN ? user.campusId : ''),
         schoolPeriod: studentToEdit?.schoolPeriod || 'A',
         schoolYear: studentToEdit?.schoolYear || new Date().getFullYear(),
@@ -307,15 +462,15 @@ const StudentFormModal: React.FC<{
         onSave(formData);
     };
 
-    const gradeOptions = [
+    const programOptions = [
         { category: 'Innovación', grades: ['Publicidad', 'Marketing Internacional'] },
-        { category: 'Ingeniería', grades: ['Ingenieria de Sistemas', 'Ingenieria Industrial', 'Diseño Industrial'] }
+        { category: 'Ingeniería', grades: ['Ingenieria de Sistemas', 'Ingenieria Industrial'] }
     ];
 
     return (
         <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
             <Card className="w-full max-w-2xl">
-                <h2 className="text-lg font-bold mb-6 dark:text-white">{isEditing ? 'Editar Estudiante' : 'Matricular Estudiante'}</h2>
+                <h2 className="text-lg font-bold mb-6 dark:text-white">{isEditing ? 'Editar Perfil Estudiantil' : 'Matricular Estudiante'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -327,12 +482,12 @@ const StudentFormModal: React.FC<{
                             <input type="text" name="documentNumber" value={formData.documentNumber} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required />
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-bold mb-1 dark:text-gray-300">Programa</label>
                             <select name="class" value={formData.class} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
-                                {gradeOptions.map(cat => (
+                                {programOptions.map(cat => (
                                     <optgroup key={cat.category} label={cat.category}>
                                         {cat.grades.map(g => <option key={g} value={g}>{g}</option>)}
                                     </optgroup>
@@ -346,18 +501,28 @@ const StudentFormModal: React.FC<{
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => <option key={s} value={s.toString()}>Semestre {s}</option>)}
                             </select>
                         </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Estado</label>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Estado Académico</label>
                             <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white">
                                 <option value="active">Activo</option>
                                 <option value="inactive">Inactivo</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold mb-1 text-indigo-600 dark:text-indigo-400">Estado Administrativo (Finanzas)</label>
+                            <select name="financialStatus" value={formData.financialStatus} onChange={handleChange} className="w-full p-2 border border-indigo-100 rounded bg-indigo-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white font-bold">
+                                <option value="Al día">Al día / Pago Total</option>
+                                <option value="Pendiente (Sensibilización)">Pendiente (Sensibilización)</option>
+                                <option value="Mora Crítica (Bloqueado)">Mora Crítica (Bloqueado)</option>
                             </select>
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 shadow-sm transition-colors">
-                            {isEditing ? 'Guardar Cambios' : 'Crear Estudiante'}
+                            {isEditing ? 'Guardar Cambios' : 'Finalizar Matrícula'}
                         </button>
                     </div>
                 </form>
@@ -431,12 +596,13 @@ const StudentManagementPage: React.FC = () => {
     const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
     const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
     const [promotingStudent, setPromotingStudent] = useState<Student | null>(null);
+    const [managingFinancial, setManagingFinancial] = useState<Student | null>(null);
     const [resettingPasswordStudent, setResettingPasswordStudent] = useState<Student | null>(null);
     const [assigningPassStudent, setAssigningPassStudent] = useState<Student | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+    const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info' | 'warning'} | null>(null);
 
-    const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    const showNotification = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 5000);
     };
@@ -472,6 +638,17 @@ const StudentManagementPage: React.FC = () => {
         }
     };
 
+    const handleSaveFinancialStatus = async (status: FinancialStatus) => {
+        if (!managingFinancial) return;
+        try {
+            await updateStudent(managingFinancial.id, { financialStatus: status });
+            showNotification(`Estado financiero actualizado a: ${status}`, 'success');
+            setManagingFinancial(null);
+        } catch (error) {
+            showNotification('Error al actualizar estado financiero', 'error');
+        }
+    };
+
     const handleDeleteStudent = async () => {
         if (deletingStudent) {
             try {
@@ -487,7 +664,7 @@ const StudentManagementPage: React.FC = () => {
     const handlePromoteConfirm = async () => {
         if (promotingStudent) {
             const result = await promoteStudent(promotingStudent.id);
-            showNotification(result.message, result.success ? 'success' : 'error');
+            showNotification(result.message, result.type || (result.success ? 'success' : 'error'));
             setPromotingStudent(null);
         }
     };
@@ -532,7 +709,9 @@ const StudentManagementPage: React.FC = () => {
             {notification && (
                 <div className={`fixed bottom-6 right-6 z-[100] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-0 ${
                     notification.type === 'success' ? 'bg-emerald-600 text-white' : 
-                    notification.type === 'error' ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white'
+                    notification.type === 'error' ? 'bg-rose-600 text-white' : 
+                    notification.type === 'warning' ? 'bg-amber-600 text-white' :
+                    'bg-blue-600 text-white'
                 }`}>
                     <span className="font-medium text-sm">{notification.message}</span>
                 </div>
@@ -577,12 +756,12 @@ const StudentManagementPage: React.FC = () => {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full text-sm text-left border-collapse">
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 font-semibold tracking-wider dark:bg-slate-800 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                                 <tr>
                                     <th className="px-6 py-4">Nombre Completo</th>
                                     <th className="px-6 py-4">Programa / Semestre</th>
-                                    <th className="px-6 py-4">Estado</th>
+                                    <th className="px-6 py-4">Estado Financiero</th>
                                     <th className="px-6 py-4 text-right">Acciones</th>
                                 </tr>
                             </thead>
@@ -603,10 +782,21 @@ const StudentManagementPage: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${student.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800'}`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${student.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                                                {student.status === 'active' ? 'Activo' : 'Inactivo'}
-                                            </span>
+                                            <button 
+                                                onClick={() => setManagingFinancial(student)}
+                                                className={`group inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all hover:scale-105 active:scale-95 ${
+                                                student.financialStatus === 'Al día' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' : 
+                                                student.financialStatus === 'Pendiente (Sensibilización)' ? 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' :
+                                                'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800'
+                                            }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                                                    student.financialStatus === 'Al día' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+                                                    student.financialStatus === 'Pendiente (Sensibilización)' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' :
+                                                    'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'
+                                                }`}></span>
+                                                {student.financialStatus || 'Al día'}
+                                                <EditIcon className="w-3 h-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end items-center gap-2">
@@ -637,6 +827,7 @@ const StudentManagementPage: React.FC = () => {
             {viewingStudent && <ViewStudentModal student={viewingStudent} onClose={() => setViewingStudent(null)} />}
             {deletingStudent && <DeleteConfirmationModal student={deletingStudent} onClose={() => setDeletingStudent(null)} onConfirm={handleDeleteStudent} />}
             {promotingStudent && <PromotionModal student={promotingStudent} onClose={() => setPromotingStudent(null)} onConfirm={handlePromoteConfirm} grades={grades} />}
+            {managingFinancial && <FinancialStatusModal student={managingFinancial} onClose={() => setManagingFinancial(null)} onSave={handleSaveFinancialStatus} />}
             {resettingPasswordStudent && <ResetPasswordConfirmationModal user={resettingPasswordStudent} onClose={() => setResettingPasswordStudent(null)} onConfirm={handleSendResetLink} />}
             {assigningPassStudent && <TempPasswordModal user={assigningPassStudent} onClose={() => setAssigningPassStudent(null)} onSave={handleAssignTempPass} />}
         </>

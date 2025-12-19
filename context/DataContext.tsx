@@ -39,16 +39,13 @@ interface DataContextType {
     addStudent: (data: Omit<Student, 'id' | 'role' | 'avatar' | 'rollNumber'>) => Promise<void>;
     updateStudent: (id: string, data: Partial<Student>) => Promise<void>;
     deleteStudent: (id: string) => Promise<void>;
-    promoteStudent: (studentId: string) => Promise<{ success: boolean; message: string }>;
+    promoteStudent: (studentId: string) => Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }>;
     addGrade: (data: Omit<Grade, 'id'>) => Promise<void>;
     updateGrade: (id: string, data: Partial<Grade>) => Promise<void>;
     deleteGrade: (id: string) => Promise<void>;
     addCommunication: (data: Omit<Communication, 'id' | 'date'>) => Promise<void>;
     updateCommunication: (id: string, data: Partial<Communication>) => Promise<void>;
     deleteCommunication: (id: string) => Promise<void>;
-    addEvent: (data: Omit<SchoolEvent, 'id'>) => Promise<void>;
-    updateEvent: (id: string, data: Partial<SchoolEvent>) => Promise<void>;
-    deleteEvent: (id: string) => Promise<void>;
     addExam: (data: Omit<Exam, 'id'>) => Promise<void>;
     updateExam: (id: string, data: Partial<Exam>) => Promise<void>;
     deleteExam: (id: string) => Promise<void>;
@@ -227,16 +224,24 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const updateStudent = (id: string, data: any) => updateInstance('students', id, data, setStudents, 'school_students');
     const deleteStudent = (id: string) => deleteInstance('students', id, setStudents, 'school_students');
 
-    const promoteStudent = async (studentId: string): Promise<{ success: boolean; message: string }> => {
+    const promoteStudent = async (studentId: string): Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }> => {
         const student = students.find(s => s.id === studentId);
-        if (!student) return { success: false, message: 'Estudiante no encontrado.' };
+        if (!student) return { success: false, message: 'Estudiante no encontrado.', type: 'error' };
 
-        // 1. Calcular Rendimiento del Semestre Actual
+        // 1. Verificación Financiera Bloqueante (Mora Crítica)
+        if (student.financialStatus === 'Mora Crítica (Bloqueado)') {
+            return { 
+                success: false, 
+                message: 'No es posible promover al estudiante: Se encuentra en estado de MORA CRÍTICA. Debe ponerse al día antes de avanzar al siguiente nivel.',
+                type: 'error'
+            };
+        }
+
+        // 2. Calcular Rendimiento Académico
         const studentGrades = grades.filter(g => g.studentId === studentId);
-        // Tipado explícito para evitar inferencia 'unknown' de Set/Array.from
         const subjects: string[] = Array.from(new Set(studentGrades.map(g => g.subject)));
         
-        if (subjects.length === 0) return { success: false, message: 'No hay registros académicos para este semestre.' };
+        if (subjects.length === 0) return { success: false, message: 'No hay registros académicos para este semestre.', type: 'warning' };
 
         const semesterDetails = subjects.map(subj => {
             const subjGrades = studentGrades.filter(g => g.subject === subj);
@@ -248,33 +253,36 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         const gpa = semesterDetails.reduce((acc, d) => acc + d.finalGrade, 0) / semesterDetails.length;
         const passed = gpa >= 3.0;
 
-        // 2. Crear Registro Histórico
+        // 3. Crear Registro Histórico
         const historyRecord: AcademicHistory = {
             semester: student.section,
             year: student.schoolYear,
             period: student.schoolPeriod,
             gpa: parseFloat(gpa.toFixed(2)),
             status: passed ? 'Aprobado' : 'Reprobado',
+            financialStatusAtClosing: student.financialStatus || 'Al día',
             details: semesterDetails,
             completionDate: new Date().toISOString()
         };
 
-        // 3. Actualizar Estudiante
+        // 4. Actualizar Estudiante
         const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
         const updatedHistory = [...(student.history || []), historyRecord];
 
         await updateInstance('students', studentId, {
             section: nextSemester,
             history: updatedHistory,
-            observation: passed ? `Promovido a semestre ${nextSemester}` : `Reprobó semestre ${student.section}. Debe repetir.`
+            observation: passed 
+              ? `Promovido a semestre ${nextSemester}. ${student.financialStatus === 'Pendiente (Sensibilización)' ? 'Aviso: Pendiente regularizar finanzas.' : ''}` 
+              : `Reprobó semestre ${student.section}. Debe repetir.`
         }, setStudents, 'school_students');
-
-        // Opcional: Podríamos eliminar las notas actuales para empezar limpio, o dejarlas por periodo.
-        // Por ahora las mantenemos ya que getPeriodFromDate las filtra.
 
         return { 
             success: passed, 
-            message: passed ? `¡Felicidades! Estudiante promovido al semestre ${nextSemester}.` : `El estudiante no alcanzó el promedio mínimo (${gpa.toFixed(2)}). Debe repetir el semestre.` 
+            message: passed 
+              ? `¡Felicidades! Estudiante promovido al semestre ${nextSemester}.` 
+              : `El estudiante no alcanzó el promedio mínimo (${gpa.toFixed(2)}). Debe repetir el semestre.`,
+            type: passed ? 'success' : 'warning'
         };
     };
 

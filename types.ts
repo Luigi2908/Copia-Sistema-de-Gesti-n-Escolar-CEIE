@@ -7,6 +7,8 @@ export enum UserRole {
   PARENT = 'Padre',
 }
 
+export type FinancialStatus = 'Al día' | 'Pendiente (Sensibilización)' | 'Mora Crítica (Bloqueado)';
+
 export interface User {
   id: string;
   name: string;
@@ -29,6 +31,7 @@ export interface AcademicHistory {
     period: string;
     gpa: number;
     status: 'Aprobado' | 'Reprobado';
+    financialStatusAtClosing: FinancialStatus;
     details: { subject: string; finalGrade: number }[];
     completionDate: string;
 }
@@ -48,6 +51,8 @@ export interface Student extends User {
     fatherPhone?: string;
     motherName?: string;
     motherPhone?: string;
+    financialStatus?: FinancialStatus;
+    financialDebt?: number;
     history?: AcademicHistory[]; // Historial de semestres anteriores
 }
 
