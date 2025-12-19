@@ -16,7 +16,7 @@ interface GlobalSettings {
     city: string;
     contactEmail: string;
     contactPhone: string;
-    schoolPeriod: '1' | '2'; // Representing 2025-1, 2025-2
+    schoolPeriod: string; // Representing bimonthly periods
     schoolDay: number;
     schoolMonth: number;
     schoolYear: number;
@@ -27,6 +27,15 @@ interface GlobalSettings {
     academicRegistry: string; // Resolution or Ministry Registry
     periodDates?: { startDate: string; endDate: string; }[];
 }
+
+const bimonthlyPeriods = [
+    { value: '1', label: '1. Feb - Mar' },
+    { value: '2', label: '2. Abr - May' },
+    { value: '3', label: '3. Jun - Jul' },
+    { value: '4', label: '4. Ago - Sep' },
+    { value: '5', label: '5. Oct - Nov' },
+    { value: '6', label: '6. Dic - Ene' },
+];
 
 const defaultSettings: GlobalSettings = {
     schoolName: 'Sistema de Gestión Superior',
@@ -44,9 +53,9 @@ const defaultSettings: GlobalSettings = {
     primaryColor: '#005A9C',
     secondaryColor: '#FDB813',
     maintenanceMode: false,
-    numberOfPeriods: 2, // Default to Semesters
+    numberOfPeriods: 3, // Default updated to 3
     academicRegistry: 'Resolución No. 12345 de MinEducación',
-    periodDates: Array(2).fill({ startDate: '', endDate: '' }),
+    periodDates: Array(3).fill({ startDate: '', endDate: '' }),
 };
 
 const GlobalSettingsPage: React.FC = () => {
@@ -216,19 +225,20 @@ const GlobalSettingsPage: React.FC = () => {
                                 <div>
                                     <label className={labelClasses}>Periodo Vigente</label>
                                     <select name="schoolPeriod" value={settings.schoolPeriod} onChange={handleChange} className={inputClasses}>
-                                        <option value="1">Periodo 1 (Ene - Jun)</option>
-                                        <option value="2">Periodo 2 (Jul - Dic)</option>
+                                        {bimonthlyPeriods.map(p => (
+                                            <option key={p.value} value={p.value}>{p.label}</option>
+                                        ))}
                                     </select>
-                                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Corresponde al semestre actual de formación.</p>
+                                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Corresponde al periodo bimensual actual.</p>
                                 </div>
                                 <div>
                                     <label className={labelClasses}>Frecuencia de Evaluación</label>
                                     <select name="numberOfPeriods" value={settings.numberOfPeriods} onChange={handleChange} className={inputClasses}>
-                                        <option value={2}>Semestral (2 Cortes)</option>
-                                        <option value={3}>Cuatrimestral (3 Cortes)</option>
-                                        <option value={4}>Bimestral (4 Cortes)</option>
+                                        <option value={3}>3 Notas por espacio</option>
+                                        <option value={4}>4 Notas por espacio</option>
+                                        <option value={5}>5 Notas por espacio</option>
                                     </select>
-                                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Define cuántos parciales se registran por espacio académico.</p>
+                                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">Define cuántas calificaciones se registran por espacio académico.</p>
                                 </div>
                             </div>
 
@@ -236,7 +246,9 @@ const GlobalSettingsPage: React.FC = () => {
                                 <div>
                                     <label className={labelClasses}>Año Académico Base</label>
                                     <select name="schoolYear" value={settings.schoolYear} onChange={handleChange} className={inputClasses}>
-                                        {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                                        {Array.from({ length: 2040 - 2021 + 1 }, (_, i) => 2021 + i).map(y => (
+                                            <option key={y} value={y}>{y}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="flex items-end">
@@ -254,14 +266,14 @@ const GlobalSettingsPage: React.FC = () => {
                                 <ClipboardDocumentListIcon className="w-5 h-5 text-indigo-500" />
                                 Cronograma de Cortes de Calificación
                             </h4>
-                            <p className="text-sm text-slate-500 mb-6 dark:text-slate-400">Establezca los plazos máximos para que los docentes suban las notas de cada parcial o corte.</p>
+                            <p className="text-sm text-slate-500 mb-6 dark:text-slate-400">Establezca los plazos máximos para el registro de las notas programadas.</p>
                             
                             <div className="space-y-4">
                                 {Array.from({ length: settings.numberOfPeriods }).map((_, i) => (
                                     <div key={i} className="flex flex-col md:flex-row items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-shadow hover:shadow-md">
                                         <div className="w-full md:w-40">
                                             <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg block text-center md:text-left">
-                                                Corte / Parcial {i + 1}
+                                                Nota {i + 1}
                                             </span>
                                         </div>
                                         <div className="flex-1 w-full grid grid-cols-2 gap-4">
