@@ -1,26 +1,194 @@
 
-import React, { useState } from 'react';
-import { Teacher, UserRole, User, Campus } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Teacher, UserRole, User, Campus, TeacherCourseAssignment } from '../../types';
 import Card from '../ui/Card';
 import { useAuth } from '../../context/AuthContext';
 import { Action, hasPermission } from '../../utils/permissions';
-// Se agrega PlusIcon a las importaciones
 import { UploadIcon, UserAddIcon, PlusIcon, KeyIcon, EditIcon, TrashIcon, BookOpenIcon, EyeIcon, IdentificationIcon, CloseIcon, PaperAirplaneIcon, EyeSlashIcon, DownloadIcon } from '../icons';
 import { useData } from '../../context/DataContext';
 
-const SUBJECTS_LIST = [
-    'Matemáticas', 'Español', 'Ciencias Naturales', 'Ciencias Sociales', 
-    'Inglés', 'Tecnología e Informática', 'Educación Física', 'Artística', 
-    'Ética y Valores', 'Religión', 'Filosofía', 'Química', 'Física', 'Economía'
-];
+// Datos corregidos según archivo PDF (Facultad > Programa > Semestre > Materias)
+const CURRICULUM_DATA: any = {
+    'Innovación': {
+        'Publicidad': {
+            '1': ['Técnicas de aprendizaje', 'Planificación y gestión del tiempo', 'Matemáticas básicas', 'Liderazgo', 'Excel nivel básico', 'Sociología I', 'Planeación de campañas', 'Inglés básico nivel I', 'Excel nivel intermedio', 'Community manager - facebook ADS'],
+            '2': ['TICS', 'Introducción al diseño de producto', 'Resolución de conflictos', 'Trabajo en Equipo', 'Inglés básico nivel II', 'Socioantropología', 'Excel nivel avanzado', 'Sociología nivel II', 'Geoogle ADS', 'Psicología del consumidor'],
+            '3': ['Mercado y ventas', 'Creatividad organizacional', 'Emprendimiento e innovación empresarial', 'Inglés básico nivel III', 'Gestión de presupuestos', 'Estrategia de producto', 'Oratoria', 'E-mail marketing', 'Photoshop básico', 'Estrategia de innovación'],
+            '4': ['Adobe ilustrator nivel básico', 'Corel draw básico', 'Metodología de investigación', 'Investigación de mercados', 'Creación de empresas', 'Habilidades de presentación', 'Photoshop intermedio', 'Ética profesional', 'Sociología III', 'Preparación Pruebas T y T'],
+            '5': ['Formulación de proyectos en marco lógico', 'Diseño de identidad corporativa', 'Animación virtual', 'Inglés intermedio nivel I', 'Fintech finanzas digitales', 'Neuromarketing', 'Inteligencia de mercados', 'Comunicación y escucha activa'],
+            '6': ['Guiones y libretos', 'Ingles intermedio nivel II', 'Diseño de web con Divi', 'After effects básico', 'Expresión corporal', 'Desarrollo empresarial y proyección social', 'Gestión ágil de proyectos innovadores', 'Dirección gráfica'],
+            '7': ['Relaciones públicas', 'AutoCAD 2D intermedio', 'After effects avanzado', 'Marketing político', 'Producción de audio', 'Plan de mercadeo estratégico', 'Gestión comercial y ventas', 'AutoCAD 3D'],
+            '8': ['Green marketing', 'Fotografía', 'Técnicas de negociación', 'Mercadeo relacional', 'Negocios digitales', 'Brading', 'Escritura de textos científicos', 'Preparación pruebas Saber PRO']
+        },
+        'Marketing Internacional': {
+            '1': ['Técnicas de aprendizaje', 'Planificación del tiempo', 'Matemática básica', 'Liderazgo', 'Sociología I', 'TICS', 'Trabajo en equipo', 'Inglés básico nivel I', 'Excel nivel básico', 'Creatividad organizacional'],
+            '2': ['Mercadeo y ventas', 'Gestión de talento humano', 'Resolución de conflictos', 'Estrategia de producto y marca', 'Inglés básico nivel II', 'Legislación laboral', 'Community manager', 'Atención y servicio al cliente', 'Psicología del consumidor', 'Excel nivel intermedio'],
+            '3': ['Pedagogía y didáctica', 'Investigación de mercados', 'Comunicación escucha activa', 'Inglés básico nivel III', 'Inteligencia de mercados', 'Legislación comercial', 'Excel nivel avanzado', 'Sociología II', 'Creación de empresas', 'Marketing mix internacional'],
+            '4': ['Gestión documentos', 'Gestión ambiental', 'Metodología de investigación', 'Trading', 'Neuromarketing', 'Fintech finanzas digitales', 'Sociología III', 'Ética profesional', 'Habilidades de presentación', 'Preparación Pruebas T y T'],
+            '5': ['Formulación de proyectos marco lógico', 'Contabilidad I', 'Inglés intermedio nivel I', 'Alta gerencia', 'Direccionamiento y planeación estratégica', 'Probabilidad y estadística', 'Planeación de campañas', 'Gerencia de transporte']
+        }
+    },
+    'Ingeniería': {
+        'Ingenieria de Sistemas': {
+            '1': ['Técnicas de aprendizaje', 'Planificación y gestión del tiempo', 'Introducción a la informática', 'Ofiática', 'Sistemas operativos - linux', 'Creatividad organizacional', 'HTML', 'Matemáticas básicas', 'Programación algorítmica', 'Inglés básico nivel I'],
+            '2': ['Fundamentos de programación', 'Excel nivel básico', 'Metodología de la investigación', 'Fundamentos de redes', 'Mantenimiento de equipos nivel básico', 'Probbilidad y estadística', 'Fundamentos de bases de datos', 'CSS - Flexbox', 'JAVA SCRIPT', 'Gestión y auditoría en sistemas'],
+            '3': ['TICS', 'Fundamentos de diseño', 'Excel nivel intermedio', 'Mantenimiento de equipos avanzado', 'Cálculo multivariables', 'PHP básico', 'Photoshop intermedio', 'Inglés básico nivel II', 'Ngocios digitales', 'Gestión de redes'],
+            '4': ['Fundamentos angular', 'Mercadeo y ventas', 'Sguridad informática', 'Excel nivel avanzado', 'Fundamentos de electrónica', 'Adinistración de redes', 'Fundamentos de Spring framework', 'Diseño web con Divi', 'Pruebas T y T', 'JAVA'],
+            '5': ['Formulación de proyectos y marco lógico', 'PHP nivel avanzado', 'Arquitectura TI', 'Inglés intermedio nivel I', 'Fundamentos de Python', 'Facebook ADS', 'Inglés básico nivel III', 'Diseño UX UI'],
+            '6': ['Juegos gerenciales', 'BACK END', 'Física, electrónica y laboratorio', 'Big Data I', 'Fundamentos de machine Learning', 'Gestión ágil de proyectos innovadores', 'Android desde cero', 'Producción de audio'],
+            '7': ['Fundamentos de VUE JS', 'Técnicas de negociación', 'Gerencia y gestión de TI', 'Inglés intermedio nivel II', 'Adinistradores de servidores', 'Métodos numéricos', 'Excel nivel experto', 'Inglés intermedio nivel III'],
+            '8': ['Inteligencia artificial', 'Big Data II', 'Nuromarketing', 'Data Warehouse', 'GITHUB desde cero', 'Pruebas saber PRO', 'Programación orientada a objetos con PHP', 'Sistemas móviles']
+        },
+        'Ingenieria Industrial': {
+            '1': ['Técnicas de aprendizaje', 'Plnificación y gestión del tiempo', 'Mtemáticas básicas', 'Liderazgo', 'Seguridad y salud en el trabajo', 'Primeros auxilios', 'Trbajo en equipo', 'English Basic Level 1', 'Excel nivel básico', 'Legislación seguridad y salud', 'Pln de emergencias'],
+            '2': ['Tecnologías de la comunicación TIC´S', 'Gestión de Talento humano', 'English Basic Level 2', 'Legislación laboral', 'Cálculo multivariado', 'Gestión de COPASST', 'Excel nivel intermedio', 'Desarrollo Rural', 'Gestión del Riesgo ISO 31000', 'Mtemáticas financieras I'],
+            '3': ['Medicina preventiva y del trabajo', 'English Basic Level 3', 'Inv. de incidentes y accidentes', 'Excel nivel avanzado', 'Hgiene industrial', 'Química general', 'Estrategias de innovación', 'Gestión ambiental ISO 14001', 'Probabilidad y estadística', 'Gestión de la calidad en Salud'],
+            '4': ['Gestión documental', 'Metodología de la investigación', 'Ecuaciones diferenciales', 'Ética profesional', 'Preparación pruebas saber TyT', 'Gestión y control de indicadores', 'Gestión y control de calidad', 'Procesos Administrativos', 'Gerencia Sistemas de Calidad HSEQ', 'Auditoria y control interno']
+        },
+        'Diseño Industrial': {
+            '1': ['Técnicas de aprendizaje', 'Planificación y gestión del tiempo', 'Fundamentos de diseño gráfico', 'Liderazgo', 'Emprendimiento innovación empresarial', 'Geometría descriptiva I', 'Trabajo en equipo', 'English Basic Level 1', 'Excel nivel básico', 'Introducción al diseño del producto'],
+            '2': ['Tecnologias de la comunicación TIC´S', 'Dibujo', 'Adobe Photoshop Básico', 'English Basic Level 2', 'Investigación de mercados', 'AutoCAD 2D Nivel Básico', 'Geometría descriptiva II', 'Alta gerencia', 'Excel nivel intermedio', 'Psicología del color'],
+            '3': ['Mercadeo y ventas', 'Adobe Photoshop intermedio', 'English Basic Level 3', 'Estrategias de innovación', 'Corel Draw nivel básico', 'Excel nivel avanzado', 'AutoCAD 2D nivel intermedio', 'Animación virtual con pencil 2D', 'Adobe Photoshop Experto', 'Introducción a 3D studio Max'],
+            '4': ['Geometría descritiva III', 'Metodología de la investigación', 'After effect nivel básico', 'Creatividad organizacional', 'After effects nivel intermedio', 'Ética profesional', 'After effects nivel avanzado', 'Preparación pruebas saber TyT', 'Psicología del consumidor', 'Adobe ilustrator nivel Básico']
+        }
+    },
+    'Ciencias Administrativas y Contables': {
+        'Contaduría Pública': {
+            '1': ['Técnicas de aprendizaje', 'Plnificación y gestión del tiempo', 'Mtemáticas básicas', 'Liderazgo', 'Excel nivel básico', 'Mtemáticas financieras I', 'Procesos Administrativos', 'English Basic Level 1', 'Excel nivel intermedio', 'Contabilidad I', 'Fundamentos de economía', 'Ofimática'],
+            '2': ['Tecnologias de la comunicación TIC´S', 'Gestión de Talento humano', 'English Basic Level 2', 'Legislación laboral', 'Excel nivel avanzado', 'Derechos humanos', 'Contabilidad II', 'Comercio internacional', 'Legislación comercial', 'Sistematización de procesos aduaneros'],
+            '3': ['Mtemáticas financieras II', 'Emprendimiento/innovación empresarial', 'English Basic Level 3', 'Gestión de presupuesto', 'Excel nivel experto', 'Seguridad informática', 'Contabilidad III', 'Gestión documental', 'Mrco juridico creación de empresas'],
+            '4': ['Metodología de la investigación', 'Investigación de mercados', 'Creación de empresas', 'Ética profesional', 'Preparación pruebas TyT', 'Probabilidad y estadística', 'Blockchain', 'Estadistica descriptiva', 'Metodos númericos', 'Power BI', 'Mercado bursatil']
+        },
+        'Administración de Empresas': {
+            '1': ['Técnicas de aprendizaje', 'Planificación y gestión del tiempo', 'Procesos administrativos', 'Liderazgo', 'Procesos Organizacionales I', 'Matemáticas financieras I', 'Administración de la producción', 'Inglés básico nivel I', 'Excel nivel básico', 'Contabilidad I', 'Fundamentos de economía', 'Matemáticas básicas'],
+            '2': ['Tecnologias de la comunicación TIC´S', 'Gestión de talento Humano', 'Trabajo en equipo', 'Inglés básico nivel II', 'Legislación laboral', 'Procesos Organizacionales II', 'Derechos Humanos', 'Contabilidad II', 'Excel nivel intermedio', 'Estrategia del producto y marca', 'Atención y Servicio al cliente'],
+            '3': ['Mercadeo y ventas', 'Etnoeducación', 'Emprendimiento-innovación empresarial', 'English Basic Level 3', 'Procesos organizacionales III', 'Oratoria', 'Excel nivel avanzado', 'Contabilidad III', 'Gestión Documental', 'Probabilidad y estadística', 'Mercado bursatil', 'Nómina y prestaciones sociales', 'Marketing Mix Internacional'],
+            '4': ['English Basic Level 4', 'Metodología de la investigación', 'Investigación de los mercados', 'Creación de empresas', 'Estrategias de innovación', 'Ética profesional', 'Seguridad y salud en el trabajo', 'Preparación pruebas TyT', 'Costos por procesos', 'Legislación comercial']
+        }
+    }
+};
 
-const GRADES_LIST = [
-    'Pre jardín', 'Jardín', 'Transición', 
-    '1ro', '2do', '3ro', '4to', '5to', 
-    '6', '7', '8', '9', '10', '11'
-];
+const AssignmentModal: React.FC<{
+    teacher: Teacher;
+    onClose: () => void;
+    onSave: (data: { subject: string, grade: string, faculty?: string, program?: string }) => void;
+}> = ({ teacher, onClose, onSave }) => {
+    const [faculty, setFaculty] = useState<string>('');
+    const [semester, setSemester] = useState<string>('');
+    const [program, setProgram] = useState<string>('');
+    const [subject, setSubject] = useState<string>('');
 
-const SECTIONS_LIST = ['A', 'B', 'C', '1', '2', '3'];
+    // Listas dinámicas
+    const faculties = Object.keys(CURRICULUM_DATA);
+    const semesters = (faculty && program) ? Object.keys(CURRICULUM_DATA[faculty][program]) : ['1', '2', '3', '4', '5', '6', '7', '8'];
+    const programs = faculty ? Object.keys(CURRICULUM_DATA[faculty]) : [];
+    const subjects = (faculty && program && semester) ? CURRICULUM_DATA[faculty][program][semester] : [];
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave({ 
+            subject, 
+            grade: `Semestre ${semester}`, 
+            faculty,
+            program
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+            <Card className="w-full max-w-xl shadow-2xl border-none">
+                <div className="flex justify-between items-center mb-6 pb-4 border-b dark:border-gray-700">
+                    <div>
+                        <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Asignar Carga Académica</h2>
+                        <p className="text-sm text-slate-500 dark:text-gray-400">Docente: <span className="font-bold text-primary">{teacher.name}</span></p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
+                        <CloseIcon className="w-7 h-7"/>
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* 1. Facultad */}
+                        <div>
+                            <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">1. Facultad</label>
+                            <select 
+                                value={faculty} 
+                                onChange={(e) => { setFaculty(e.target.value); setProgram(''); setSemester(''); setSubject(''); }} 
+                                className="w-full p-3 border-2 border-slate-100 rounded-xl bg-slate-50 focus:border-primary focus:bg-white outline-none transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                                required
+                            >
+                                <option value="">Seleccione Facultad</option>
+                                {faculties.map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                        </div>
+
+                        {/* 2. Semestre (Antepenúltimo en el flujo visual del grid) */}
+                        <div>
+                            <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">2. Semestre</label>
+                            <select 
+                                value={semester} 
+                                onChange={(e) => { setSemester(e.target.value); setSubject(''); }} 
+                                disabled={!program}
+                                className="w-full p-3 border-2 border-slate-100 rounded-xl bg-slate-50 focus:border-primary focus:bg-white outline-none transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white disabled:opacity-50"
+                                required
+                            >
+                                <option value="">Seleccione Semestre</option>
+                                {semesters.map(n => <option key={n} value={n}>Semestre {n}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* 3. Programa Académico (Penúltimo) */}
+                    <div>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">3. Programa Académico</label>
+                        <select 
+                            value={program} 
+                            onChange={(e) => { setProgram(e.target.value); setSemester(''); setSubject(''); }} 
+                            disabled={!faculty}
+                            className="w-full p-3 border-2 border-slate-100 rounded-xl bg-slate-50 focus:border-primary focus:bg-white outline-none transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white disabled:opacity-50"
+                            required
+                        >
+                            <option value="">Seleccione Programa</option>
+                            {programs.map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                    </div>
+
+                    {/* 4. Asignatura (Espacio - Último) */}
+                    <div>
+                        <label className="block text-xs font-black text-slate-500 uppercase mb-1.5 ml-1">4. Asignatura (Espacio Académico)</label>
+                        <select 
+                            value={subject} 
+                            onChange={(e) => setSubject(e.target.value)} 
+                            disabled={!semester}
+                            className="w-full p-3 border-2 border-slate-100 rounded-xl bg-slate-50 focus:border-primary focus:bg-white outline-none transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white disabled:opacity-50"
+                            required
+                        >
+                            <option value="">Seleccione Asignatura</option>
+                            {subjects.map((s: string) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6 border-t dark:border-gray-700">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            type="submit" 
+                            className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+                        >
+                            <BookOpenIcon className="w-5 h-5"/> Confirmar Carga
+                        </button>
+                    </div>
+                </form>
+            </Card>
+        </div>
+    );
+};
 
 const BulkUploadTeachersModal: React.FC<{
     onClose: () => void;
@@ -133,91 +301,6 @@ const BulkUploadTeachersModal: React.FC<{
                         Procesar Importación
                     </button>
                 </div>
-            </Card>
-        </div>
-    );
-};
-
-const AssignmentModal: React.FC<{
-    teacher: Teacher;
-    onClose: () => void;
-    onSave: (data: { subject: string, grade: string, section: string, isHomeroom: boolean }) => void;
-}> = ({ teacher, onClose, onSave }) => {
-    const [subject, setSubject] = useState(teacher.subject || SUBJECTS_LIST[0]);
-    const [grade, setGrade] = useState(GRADES_LIST[0]);
-    const [section, setSection] = useState(SECTIONS_LIST[0]);
-    const [isHomeroom, setIsHomeroom] = useState(false);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave({ subject, grade, section, isHomeroom });
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
-            <Card className="w-full max-w-md">
-                <div className="flex justify-between items-center mb-6 pb-3 border-b dark:border-gray-700">
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Asignar Carga Académica</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Profesor: {teacher.name}</p>
-                    </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><CloseIcon className="w-6 h-6"/></button>
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label className="block text-sm font-bold mb-1.5 dark:text-gray-300">Asignatura</label>
-                        <select 
-                            value={subject} 
-                            onChange={(e) => setSubject(e.target.value)} 
-                            className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                        >
-                            {SUBJECTS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold mb-1.5 dark:text-gray-300">Grado</label>
-                            <select 
-                                value={grade} 
-                                onChange={(e) => setGrade(e.target.value)} 
-                                className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                            >
-                                {GRADES_LIST.map(g => <option key={g} value={g}>{g}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-1.5 dark:text-gray-300">Grupo / Sección</label>
-                            <select 
-                                value={section} 
-                                onChange={(e) => setSection(e.target.value)} 
-                                className="w-full p-2.5 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                            >
-                                {SECTIONS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-                        <input 
-                            id="homeroom" 
-                            type="checkbox" 
-                            checked={isHomeroom} 
-                            onChange={(e) => setIsHomeroom(e.target.checked)} 
-                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                        />
-                        <label htmlFor="homeroom" className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
-                            Asignar como <span className="font-bold text-primary dark:text-blue-400">Director de Grupo</span>
-                        </label>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700 mt-6">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 shadow-sm transition-colors flex items-center gap-2">
-                            <BookOpenIcon className="w-4 h-4"/> Asignar
-                        </button>
-                    </div>
-                </form>
             </Card>
         </div>
     );
@@ -463,23 +546,17 @@ const TeacherManagementPage: React.FC = () => {
         }
     };
 
-    const handleSaveAssignment = async (data: { subject: string, grade: string, section: string, isHomeroom: boolean }) => {
+    const handleSaveAssignment = async (data: any) => {
         if (!assigningTeacher) return;
         try {
             await addAssignment({
                 teacherId: assigningTeacher.id,
                 subject: data.subject,
-                class: data.grade,
-                section: data.section,
+                class: data.program, // Usamos el programa como "clase" principal en educacion superior
+                section: '-',
                 jornada: 'Diurno',
                 intensidadHoraria: 4 
             });
-
-            if (data.isHomeroom) {
-                // Assuming key format Grade-Section
-                const key = `${data.grade}-${data.section}`;
-                setHomeroomAssignments(prev => ({ ...prev, [key]: assigningTeacher.id }));
-            }
 
             showNotification('Carga asignada exitosamente', 'success');
             setAssigningTeacher(null);
@@ -604,14 +681,14 @@ const TeacherManagementPage: React.FC = () => {
                                                     <BookOpenIcon className="w-4 h-4"/>
                                                 </button>
                                                 {isSuperAdmin && (
-                                                    <button onClick={() => setAssigningPassTeacher(teacher)} className="p-2 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all focus:outline-none shadow-sm dark:bg-amber-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40" title="Asignar Clave Provisional">
+                                                    <button onClick={() => setAssigningPassTeacher(teacher)} className="p-2 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all focus:outline-none shadow-sm dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-blue-900/40" title="Asignar Clave Provisional">
                                                         <KeyIcon className="w-4 h-4"/>
                                                     </button>
                                                 )}
                                                 <button onClick={() => setResettingPasswordTeacher(teacher)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-emerald-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-emerald-400" title="Restablecer Contraseña (Email)">
                                                     <PaperAirplaneIcon className="w-4 h-4"/>
                                                 </button>
-                                                <button onClick={() => { setEditingTeacher(teacher); setIsModalOpen(true); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-amber-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400" title="Editar">
+                                                <button onClick={() => { setEditingTeacher(teacher); setIsModalOpen(true); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-amber-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-emerald-400" title="Editar">
                                                     <EditIcon className="w-4 h-4"/>
                                                 </button>
                                                 <button onClick={() => setDeletingTeacher(teacher)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-rose-400" title="Eliminar">
