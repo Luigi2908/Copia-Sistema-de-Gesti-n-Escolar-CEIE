@@ -42,6 +42,58 @@ const CURRICULUM_DATA: any = {
     }
 };
 
+const ViewTeacherModal: React.FC<{ teacher: Teacher; onClose: () => void }> = ({ teacher, onClose }) => (
+    <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center p-4 backdrop-blur-sm">
+        <Card className="w-full max-w-lg shadow-2xl animate-fade-in-up border-none overflow-hidden">
+            <div className="relative h-32 bg-gradient-to-r from-indigo-600 to-blue-500">
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white transition-colors">
+                    <CloseIcon className="w-6 h-6"/>
+                </button>
+            </div>
+            <div className="px-8 pb-8 -mt-12">
+                <div className="relative inline-block">
+                    <img src={teacher.avatar} className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-900 shadow-xl object-cover" alt=""/>
+                    <div className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 ${teacher.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                </div>
+                
+                <div className="mt-4">
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white">{teacher.name}</h2>
+                    <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{teacher.professionalProfile || 'Docente'}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Identificación</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{teacher.documentNumber}</p>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Correo Electrónico</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 break-all">{teacher.email}</p>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Teléfono</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{teacher.phone}</p>
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sede de Trabajo</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{teacher.campusName}</p>
+                    </div>
+                </div>
+
+                {teacher.observation && (
+                    <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Perfil y Observaciones</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">"{teacher.observation}"</p>
+                    </div>
+                )}
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-700 flex justify-end">
+                <button onClick={onClose} className="px-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all text-sm">Cerrar</button>
+            </div>
+        </Card>
+    </div>
+);
+
 const ViewAssignmentsModal: React.FC<{
     teacher: Teacher;
     assignments: TeacherCourseAssignment[];
@@ -74,7 +126,7 @@ const ViewAssignmentsModal: React.FC<{
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{ass.class}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center gap-2">
                                         <button 
                                             onClick={() => onEdit(ass)}
                                             className="p-2 bg-white dark:bg-slate-900 text-amber-500 hover:text-amber-600 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 transition-colors"
@@ -395,6 +447,7 @@ const TeacherManagementPage: React.FC = () => {
     const [assigningTeacher, setAssigningTeacher] = useState<Teacher | null>(null);
     const [viewingAssignmentsTeacher, setViewingAssignmentsTeacher] = useState<Teacher | null>(null);
     const [editingAssignment, setEditingAssignment] = useState<TeacherCourseAssignment | null>(null);
+    const [inspectingTeacher, setInspectingTeacher] = useState<Teacher | null>(null);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -524,7 +577,7 @@ const TeacherManagementPage: React.FC = () => {
                             </div>
                             Gestión de Profesores
                         </h2>
-                        <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Cuerpo docente y administración de carga académica.</p>
+                        <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración docente y carga académica.</p>
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -595,6 +648,9 @@ const TeacherManagementPage: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-right">
                                        {user && hasPermission(user.role, Action.MANAGE_TEACHERS) && (
                                            <div className="flex justify-end items-center gap-2">
+                                                <button onClick={() => setInspectingTeacher(teacher)} className="p-2 rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white" title="Ver Información Completa">
+                                                    <EyeIcon className="w-4 h-4"/>
+                                                </button>
                                                 <button onClick={() => setAssigningTeacher(teacher)} className="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 transition-all focus:outline-none shadow-sm dark:bg-indigo-900/20 dark:text-indigo-400" title="Nueva Asignación">
                                                     <PlusIcon className="w-4 h-4"/>
                                                 </button>
@@ -627,7 +683,8 @@ const TeacherManagementPage: React.FC = () => {
         {deletingTeacher && <DeleteConfirmationModal teacher={deletingTeacher} onClose={() => setDeletingTeacher(null)} onConfirm={handleDeleteTeacher} />}
         {resettingPasswordTeacher && <ResetPasswordConfirmationModal user={resettingPasswordTeacher} onClose={() => setResettingPasswordTeacher(null)} onConfirm={handleSendResetLink} />}
         {assigningPassTeacher && <TempPasswordModal user={assigningPassTeacher} onClose={() => setAssigningPassTeacher(null)} onSave={handleAssignTempPass} />}
-        
+        {inspectingTeacher && <ViewTeacherModal teacher={inspectingTeacher} onClose={() => setInspectingTeacher(null)} />}
+
         {(assigningTeacher || editingAssignment) && (
             <AssignmentModal 
                 teacher={assigningTeacher!} 
