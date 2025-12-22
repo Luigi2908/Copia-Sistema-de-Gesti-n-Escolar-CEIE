@@ -1,19 +1,20 @@
-import { createClient } from '@supabase/supabase-js';
 
-// Conexión desactivada / Modo Local
-const supabaseUrl = '';
-const supabaseKey = '';
-
-// Exportamos un cliente dummy o null, ya que no se usará.
-// Para evitar errores de tipado en archivos que aún lo importen, lo dejamos como any o mock.
+/**
+ * Persistence Reverted to LocalStorage.
+ * This file is now inactive but kept to prevent import errors.
+ */
 export const supabase = {
-    from: () => ({ select: () => ({ data: [], error: null }) }),
     auth: {
-        signUp: () => ({ data: { user: null }, error: null }),
-        signInWithPassword: () => ({ data: { user: null }, error: null }),
-        signOut: () => ({ error: null }),
-        getSession: () => ({ data: { session: null } }),
-        updateUser: () => ({ error: null }),
-        resetPasswordForEmail: () => ({ error: null })
-    }
+        getSession: async () => ({ data: { session: null }, error: null }),
+        signInWithPassword: async () => ({ data: { user: null }, error: new Error("Local mode active") }),
+        signOut: async () => ({ error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        resetPasswordForEmail: async () => ({ error: null })
+    },
+    from: (table: string) => ({
+        select: () => ({ eq: () => ({ single: () => ({ data: null, error: null }), order: () => ({ data: [], error: null }) }), single: () => ({ data: null, error: null }) }),
+        insert: () => ({ error: null }),
+        update: () => ({ eq: () => ({ error: null }) }),
+        delete: () => ({ eq: () => ({ error: null }) })
+    })
 } as any;

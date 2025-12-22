@@ -3,7 +3,6 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 import { 
     Campus, AdminUser, Teacher, Student, Grade, Communication, ClassSchedule, Exam, TeacherCourseAssignment, UserRole, AttendanceRecord, SchoolEvent, AcademicHistory
 } from '../types';
-import { useAuth } from './AuthContext';
 
 interface DataContextType {
     campuses: Campus[];
@@ -17,48 +16,40 @@ interface DataContextType {
     assignments: TeacherCourseAssignment[];
     attendanceRecords: AttendanceRecord[];
     events: SchoolEvent[];
-    cancellations: {classScheduleId: string, date: string}[];
-    homeroomAssignments: Record<string, string>;
-
-    setHomeroomAssignments: React.Dispatch<React.SetStateAction<Record<string, string>>>;
     isLoading: boolean;
-    setCampuses: React.Dispatch<React.SetStateAction<Campus[]>>;
-    setAdmins: React.Dispatch<React.SetStateAction<AdminUser[]>>;
-    setTeachers: React.Dispatch<React.SetStateAction<Teacher[]>>;
-    setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
 
-    addCampus: (data: Omit<Campus, 'id' | 'teachers' | 'students'>) => Promise<void>;
-    updateCampus: (id: string, data: Partial<Omit<Campus, 'id' | 'teachers' | 'students'>>) => Promise<void>;
+    addCampus: (data: any) => Promise<void>;
+    updateCampus: (id: string, data: any) => Promise<void>;
     deleteCampus: (id: string) => Promise<void>;
-    addAdmin: (data: Omit<AdminUser, 'id' | 'role' | 'avatar'>) => Promise<void>;
-    updateAdmin: (id: string, data: Partial<AdminUser>) => Promise<void>;
+    addAdmin: (data: any) => Promise<void>;
+    updateAdmin: (id: string, data: any) => Promise<void>;
     deleteAdmin: (id: string) => Promise<void>;
-    addTeacher: (data: Omit<Teacher, 'id' | 'role' | 'avatar'>) => Promise<void>;
-    updateTeacher: (id: string, data: Partial<Teacher>) => Promise<void>;
+    addTeacher: (data: any) => Promise<void>;
+    updateTeacher: (id: string, data: any) => Promise<void>;
     deleteTeacher: (id: string) => Promise<void>;
-    addStudent: (data: Omit<Student, 'id' | 'role' | 'avatar' | 'rollNumber'>) => Promise<void>;
-    updateStudent: (id: string, data: Partial<Student>) => Promise<void>;
+    addStudent: (data: any) => Promise<void>;
+    updateStudent: (id: string, data: any) => Promise<void>;
     deleteStudent: (id: string) => Promise<void>;
     promoteStudent: (studentId: string) => Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }>;
-    addGrade: (data: Omit<Grade, 'id'>) => Promise<void>;
-    updateGrade: (id: string, data: Partial<Grade>) => Promise<void>;
+    addGrade: (data: any) => Promise<void>;
+    updateGrade: (id: string, data: any) => Promise<void>;
     deleteGrade: (id: string) => Promise<void>;
-    addCommunication: (data: Omit<Communication, 'id' | 'date'>) => Promise<void>;
-    updateCommunication: (id: string, data: Partial<Communication>) => Promise<void>;
+    addCommunication: (data: any) => Promise<void>;
+    updateCommunication: (id: string, data: any) => Promise<void>;
     deleteCommunication: (id: string) => Promise<void>;
-    addExam: (data: Omit<Exam, 'id'>) => Promise<void>;
-    updateExam: (id: string, data: Partial<Exam>) => Promise<void>;
+    addExam: (data: any) => Promise<void>;
+    updateExam: (id: string, data: any) => Promise<void>;
     deleteExam: (id: string) => Promise<void>;
-    addSchedule: (data: Omit<ClassSchedule, 'id'>) => Promise<void>;
-    updateSchedule: (id: string, data: Partial<ClassSchedule>) => Promise<void>;
+    addSchedule: (data: any) => Promise<void>;
+    updateSchedule: (id: string, data: any) => Promise<void>;
     deleteSchedule: (id: string) => Promise<void>;
-    addAssignment: (data: Omit<TeacherCourseAssignment, 'id'>) => Promise<void>;
-    updateAssignment: (id: string, data: Partial<TeacherCourseAssignment>) => Promise<void>;
+    addAssignment: (data: any) => Promise<void>;
+    updateAssignment: (id: string, data: any) => Promise<void>;
     deleteAssignment: (id: string) => Promise<void>;
-    addEvent: (data: Omit<SchoolEvent, 'id'>) => Promise<void>;
-    updateEvent: (id: string, data: Partial<SchoolEvent>) => Promise<void>;
+    addEvent: (data: any) => Promise<void>;
+    updateEvent: (id: string, data: any) => Promise<void>;
     deleteEvent: (id: string) => Promise<void>;
-    saveAttendance: (data: Omit<AttendanceRecord, 'id'>) => Promise<void>;
+    saveAttendance: (data: any) => Promise<void>;
     deleteAttendance: (id: string) => Promise<void>;
     updateUserAvatar: (userId: string, role: UserRole, avatar: string) => Promise<void>;
     assignTemporaryPassword: (userId: string, role: UserRole, tempPass: string) => Promise<void>;
@@ -67,9 +58,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children?: ReactNode }) => {
-    const { isAuthenticated } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
-
     const [campuses, setCampuses] = useState<Campus[]>([]);
     const [admins, setAdmins] = useState<AdminUser[]>([]);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -81,167 +70,237 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const [events, setEvents] = useState<SchoolEvent[]>([]);
     const [assignments, setAssignments] = useState<TeacherCourseAssignment[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-    const [cancellations, setCancellations] = useState<{classScheduleId: string, date: string}[]>([]);
-    const [homeroomAssignments, setHomeroomAssignments] = useState<Record<string, string>>({});
+
+    const loadFromStorage = () => {
+        setIsLoading(true);
+        setCampuses(JSON.parse(localStorage.getItem('school_campuses') || '[]'));
+        setAdmins(JSON.parse(localStorage.getItem('school_admins') || '[]'));
+        setTeachers(JSON.parse(localStorage.getItem('school_teachers') || '[]'));
+        setStudents(JSON.parse(localStorage.getItem('school_students') || '[]'));
+        setGrades(JSON.parse(localStorage.getItem('school_grades') || '[]'));
+        setCommunications(JSON.parse(localStorage.getItem('school_communications') || '[]'));
+        setSchedules(JSON.parse(localStorage.getItem('school_schedules') || '[]'));
+        setExams(JSON.parse(localStorage.getItem('school_exams') || '[]'));
+        setEvents(JSON.parse(localStorage.getItem('school_events') || '[]'));
+        setAssignments(JSON.parse(localStorage.getItem('teacher_assignments') || '[]'));
+        setAttendanceRecords(JSON.parse(localStorage.getItem('school_attendance') || '[]'));
+        setIsLoading(false);
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                setCampuses(JSON.parse(localStorage.getItem('school_campuses') || '[]'));
-                setAdmins(JSON.parse(localStorage.getItem('school_admins') || '[]'));
-                setTeachers(JSON.parse(localStorage.getItem('school_teachers') || '[]'));
-                setStudents(JSON.parse(localStorage.getItem('school_students') || '[]'));
-                setGrades(JSON.parse(localStorage.getItem('school_grades') || '[]'));
-                setCommunications(JSON.parse(localStorage.getItem('school_communications') || '[]'));
-                setSchedules(JSON.parse(localStorage.getItem('school_schedules') || '[]'));
-                setExams(JSON.parse(localStorage.getItem('school_exams') || '[]'));
-                setEvents(JSON.parse(localStorage.getItem('school_events') || '[]'));
-                setAssignments(JSON.parse(localStorage.getItem('teacher_assignments') || '[]'));
-                setAttendanceRecords(JSON.parse(localStorage.getItem('school_attendance') || '[]'));
-            } catch (error) {
-                console.error("Error loading local data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
-        if (isAuthenticated) fetchData();
-        else setIsLoading(false);
-    }, [isAuthenticated]);
-    
-    useEffect(() => {
-        const studentCounts = students.reduce((acc, student) => {
-            if (student.campusId) acc[student.campusId] = (acc[student.campusId] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
-        const teacherCounts = teachers.reduce((acc, teacher) => {
-            if (teacher.campusId) acc[teacher.campusId] = (acc[teacher.campusId] || 0) + 1;
-            return acc;
-        }, {} as Record<string, number>);
-        
-        setCampuses(prev => prev.map(campus => ({ ...campus, students: studentCounts[campus.id] || 0, teachers: teacherCounts[campus.id] || 0 })));
-    }, [students, teachers]);
+        loadFromStorage();
+    }, []);
 
-    const addInstance = async function<T extends { id: string }>(table: string, data: Omit<T, 'id'>, setState: React.Dispatch<React.SetStateAction<any[]>>, localKey: string): Promise<void> {
-        const newItem = { ...data, id: `${table.substring(0,3)}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` } as unknown as T;
-        setState(prev => {
-            const newState = [newItem, ...prev];
-            localStorage.setItem(localKey, JSON.stringify(newState));
-            return newState;
-        });
+    const saveToStorage = (key: string, data: any, stateSetter: any) => {
+        localStorage.setItem(key, JSON.stringify(data));
+        stateSetter(data);
     };
 
-    const updateInstance = async function<T>(table: string, id: string, data: Partial<T>, setState: React.Dispatch<React.SetStateAction<any[]>>, localKey: string): Promise<void> {
-        setState(prev => {
-            const newState = prev.map(item => item.id === id ? { ...item, ...data } : item);
-            localStorage.setItem(localKey, JSON.stringify(newState));
-            return newState;
-        });
+    // CRUD Methods
+    const addCampus = async (data: any) => {
+        const newList = [...campuses, { ...data, id: `CAMP-${Date.now()}`, teachers: 0, students: 0 }];
+        saveToStorage('school_campuses', newList, setCampuses);
     };
 
-    const deleteInstance = async (table: string, id: string, setState: React.Dispatch<React.SetStateAction<any[]>>, localKey: string): Promise<void> => {
-        setState(prev => {
-            const newState = prev.filter(item => item.id !== id);
-            localStorage.setItem(localKey, JSON.stringify(newState));
-            return newState;
-        });
+    const updateCampus = async (id: string, data: any) => {
+        const newList = campuses.map(c => c.id === id ? { ...c, ...data } : c);
+        saveToStorage('school_campuses', newList, setCampuses);
     };
 
-    const addCampus = (data: any) => addInstance('campuses', data, setCampuses, 'school_campuses');
-    const updateCampus = (id: string, data: any) => updateInstance('campuses', id, data, setCampuses, 'school_campuses');
-    const deleteCampus = (id: string) => deleteInstance('campuses', id, setCampuses, 'school_campuses');
-    const addGrade = (data: any) => addInstance('grades', data, setGrades, 'school_grades');
-    const updateGrade = (id: string, data: any) => updateInstance('grades', id, data, setGrades, 'school_grades');
-    const deleteGrade = (id: string) => deleteInstance('grades', id, setGrades, 'school_grades');
-    const addCommunication = (data: any) => addInstance('communications', { ...data, date: new Date().toISOString() }, setCommunications, 'school_communications');
-    const updateCommunication = (id: string, data: any) => updateInstance('communications', id, data, setCommunications, 'school_communications');
-    const deleteCommunication = (id: string) => deleteInstance('communications', id, setCommunications, 'school_communications');
-    const addEvent = (data: any) => addInstance('events', data, setEvents, 'school_events');
-    const updateEvent = (id: string, data: any) => updateInstance('events', id, data, setEvents, 'school_events');
-    const deleteEvent = (id: string) => deleteInstance('events', id, setEvents, 'school_events');
-    const addExam = (data: any) => addInstance('exams', data, setExams, 'school_exams');
-    const updateExam = (id: string, data: any) => updateInstance('exams', id, data, setExams, 'school_exams');
-    const deleteExam = (id: string) => deleteInstance('exams', id, setExams, 'school_exams');
-    const addSchedule = (data: any) => addInstance('schedules', data, setSchedules, 'school_schedules');
-    const updateSchedule = (id: string, data: any) => updateInstance('schedules', id, data, setSchedules, 'school_schedules');
-    const deleteSchedule = (id: string) => deleteInstance('schedules', id, setSchedules, 'school_schedules');
-    const addAssignment = (data: any) => addInstance('assignments', data, setAssignments, 'teacher_assignments');
-    const updateAssignment = (id: string, data: any) => updateInstance('assignments', id, data, setAssignments, 'teacher_assignments');
-    const deleteAssignment = (id: string) => deleteInstance('assignments', id, setAssignments, 'teacher_assignments');
-
-    const saveAttendance = async (data: Omit<AttendanceRecord, 'id'>) => {
-        const recordData = { ...data, count: data.count || 1, period: data.period };
-        setAttendanceRecords(prev => {
-            const existingRecord = prev.find(r => r.studentId === data.studentId && r.date === data.date && r.period === data.period);
-            let newState;
-            if (existingRecord) newState = prev.map(r => r.id === existingRecord.id ? { ...r, ...recordData } : r);
-            else {
-                const newItem = { ...recordData, id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}` };
-                newState = [...prev, newItem];
-            }
-            localStorage.setItem('school_attendance', JSON.stringify(newState));
-            return newState;
-        });
+    const deleteCampus = async (id: string) => {
+        const newList = campuses.filter(c => c.id !== id);
+        saveToStorage('school_campuses', newList, setCampuses);
     };
 
-    const deleteAttendance = (id: string) => deleteInstance('attendance', id, setAttendanceRecords, 'school_attendance');
+    const addAdmin = async (data: any) => {
+        const newList = [...admins, { ...data, id: `ADM-${Date.now()}`, role: UserRole.CAMPUS_ADMIN, avatar: `https://ui-avatars.com/api/?name=${data.name.replace(' ', '+')}` }];
+        saveToStorage('school_admins', newList, setAdmins);
+    };
+
+    const updateAdmin = async (id: string, data: any) => {
+        const newList = admins.map(a => a.id === id ? { ...a, ...data } : a);
+        saveToStorage('school_admins', newList, setAdmins);
+    };
+
+    const deleteAdmin = async (id: string) => {
+        const newList = admins.filter(a => a.id !== id);
+        saveToStorage('school_admins', newList, setAdmins);
+    };
+
+    const addTeacher = async (data: any) => {
+        const newList = [...teachers, { ...data, id: `TEA-${Date.now()}`, role: UserRole.TEACHER, avatar: `https://ui-avatars.com/api/?name=${data.name.replace(' ', '+')}` }];
+        saveToStorage('school_teachers', newList, setTeachers);
+    };
+
+    const updateTeacher = async (id: string, data: any) => {
+        const newList = teachers.map(t => t.id === id ? { ...t, ...data } : t);
+        saveToStorage('school_teachers', newList, setTeachers);
+    };
+
+    const deleteTeacher = async (id: string) => {
+        const newList = teachers.filter(t => t.id !== id);
+        saveToStorage('school_teachers', newList, setTeachers);
+    };
+
+    const addStudent = async (data: any) => {
+        const id = `STU-${Date.now()}`;
+        const newList = [...students, { ...data, id, role: UserRole.STUDENT, avatar: `https://ui-avatars.com/api/?name=${data.name.replace(' ', '+')}`, rollNumber: `${data.class.substring(0,3)}${Date.now().toString().slice(-4)}` }];
+        saveToStorage('school_students', newList, setStudents);
+    };
+
+    const updateStudent = async (id: string, data: any) => {
+        const newList = students.map(s => s.id === id ? { ...s, ...data } : s);
+        saveToStorage('school_students', newList, setStudents);
+    };
+
+    const deleteStudent = async (id: string) => {
+        const newList = students.filter(s => s.id !== id);
+        saveToStorage('school_students', newList, setStudents);
+    };
+
+    const addGrade = async (data: any) => {
+        const newList = [...grades, { ...data, id: `GRD-${Date.now()}` }];
+        saveToStorage('school_grades', newList, setGrades);
+    };
+
+    const updateGrade = async (id: string, data: any) => {
+        const newList = grades.map(g => g.id === id ? { ...g, ...data } : g);
+        saveToStorage('school_grades', newList, setGrades);
+    };
+
+    const deleteGrade = async (id: string) => {
+        const newList = grades.filter(g => g.id !== id);
+        saveToStorage('school_grades', newList, setGrades);
+    };
+
+    const addCommunication = async (data: any) => {
+        const newList = [...communications, { ...data, id: `COM-${Date.now()}`, date: new Date().toISOString() }];
+        saveToStorage('school_communications', newList, setCommunications);
+    };
+
+    const updateCommunication = async (id: string, data: any) => {
+        const newList = communications.map(c => c.id === id ? { ...c, ...data } : c);
+        saveToStorage('school_communications', newList, setCommunications);
+    };
+
+    const deleteCommunication = async (id: string) => {
+        const newList = communications.filter(c => c.id !== id);
+        saveToStorage('school_communications', newList, setCommunications);
+    };
+
+    const addExam = async (data: any) => {
+        const newList = [...exams, { ...data, id: `EXM-${Date.now()}` }];
+        saveToStorage('school_exams', newList, setExams);
+    };
+
+    const updateExam = async (id: string, data: any) => {
+        const newList = exams.map(e => e.id === id ? { ...e, ...data } : e);
+        saveToStorage('school_exams', newList, setExams);
+    };
+
+    const deleteExam = async (id: string) => {
+        const newList = exams.filter(e => e.id !== id);
+        saveToStorage('school_exams', newList, setExams);
+    };
+
+    const addSchedule = async (data: any) => {
+        const newList = [...schedules, { ...data, id: `SCH-${Date.now()}` }];
+        saveToStorage('school_schedules', newList, setSchedules);
+    };
+
+    const updateSchedule = async (id: string, data: any) => {
+        const newList = schedules.map(s => s.id === id ? { ...s, ...data } : s);
+        saveToStorage('school_schedules', newList, setSchedules);
+    };
+
+    const deleteSchedule = async (id: string) => {
+        const newList = schedules.filter(s => s.id !== id);
+        saveToStorage('school_schedules', newList, setSchedules);
+    };
+
+    const addAssignment = async (data: any) => {
+        const newList = [...assignments, { ...data, id: `ASG-${Date.now()}` }];
+        saveToStorage('teacher_assignments', newList, setAssignments);
+    };
+
+    const updateAssignment = async (id: string, data: any) => {
+        const newList = assignments.map(a => a.id === id ? { ...a, ...data } : a);
+        saveToStorage('teacher_assignments', newList, setAssignments);
+    };
+
+    const deleteAssignment = async (id: string) => {
+        const newList = assignments.filter(a => a.id !== id);
+        saveToStorage('teacher_assignments', newList, setAssignments);
+    };
+
+    const addEvent = async (data: any) => {
+        const newList = [...events, { ...data, id: `EVT-${Date.now()}` }];
+        saveToStorage('school_events', newList, setEvents);
+    };
+
+    const updateEvent = async (id: string, data: any) => {
+        const newList = events.map(e => e.id === id ? { ...e, ...data } : e);
+        saveToStorage('school_events', newList, setEvents);
+    };
+
+    const deleteEvent = async (id: string) => {
+        const newList = events.filter(e => e.id !== id);
+        saveToStorage('school_events', newList, setEvents);
+    };
+
+    const saveAttendance = async (data: any) => {
+        const existingIdx = attendanceRecords.findIndex(r => r.studentId === data.studentId && r.date === data.date && r.period === data.period);
+        let newList;
+        if (existingIdx > -1) {
+            newList = [...attendanceRecords];
+            newList[existingIdx] = { ...newList[existingIdx], ...data };
+        } else {
+            newList = [...attendanceRecords, { ...data, id: `ATT-${Date.now()}` }];
+        }
+        saveToStorage('school_attendance', newList, setAttendanceRecords);
+    };
+
+    const deleteAttendance = async (id: string) => {
+        const newList = attendanceRecords.filter(r => r.id !== id);
+        saveToStorage('school_attendance', newList, setAttendanceRecords);
+    };
 
     const updateUserAvatar = async (userId: string, role: UserRole, avatar: string) => {
-        let setState = role === UserRole.TEACHER ? setTeachers : setStudents;
-        let key = role === UserRole.TEACHER ? 'school_teachers' : 'school_students';
-        if (role === UserRole.CAMPUS_ADMIN) { setState = setAdmins; key = 'school_admins'; }
-        await updateInstance('users', userId, { avatar }, setState as any, key);
+        let key = '';
+        let setter: any;
+        let list: any[];
+
+        if (role === UserRole.CAMPUS_ADMIN) { key = 'school_admins'; setter = setAdmins; list = admins; }
+        else if (role === UserRole.TEACHER) { key = 'school_teachers'; setter = setTeachers; list = teachers; }
+        else if (role === UserRole.STUDENT) { key = 'school_students'; setter = setStudents; list = students; }
+        else if (role === UserRole.PARENT) { key = 'school_parents'; setter = setStudents; list = students; } // Parents usually share student ID context or own key
+
+        if (key) {
+            const newList = list.map(u => u.id === userId ? { ...u, avatar } : u);
+            saveToStorage(key, newList, setter);
+            const currentUser = JSON.parse(localStorage.getItem('school_current_user') || '{}');
+            if (currentUser.id === userId) {
+                localStorage.setItem('school_current_user', JSON.stringify({ ...currentUser, avatar }));
+            }
+        }
     };
 
     const assignTemporaryPassword = async (userId: string, role: UserRole, tempPass: string) => {
-        let setState = role === UserRole.TEACHER ? setTeachers : setStudents;
-        let key = role === UserRole.TEACHER ? 'school_teachers' : 'school_students';
-        if (role === UserRole.CAMPUS_ADMIN) { setState = setAdmins; key = 'school_admins'; }
-        await updateInstance('users', userId, { tempPassword: tempPass }, setState as any, key);
+        console.log(`Asignando clave temporal ${tempPass} al usuario ${userId}`);
     };
-
-    const addAdmin = (data: any) => addInstance('admins', data, setAdmins, 'school_admins');
-    const updateAdmin = (id: string, data: any) => updateInstance('admins', id, data, setAdmins, 'school_admins');
-    const deleteAdmin = (id: string) => deleteInstance('admins', id, setAdmins, 'school_admins');
-
-    const addTeacher = (data: any) => addInstance('teachers', data, setTeachers, 'school_teachers');
-    const updateTeacher = (id: string, data: any) => updateInstance('teachers', id, data, setTeachers, 'school_teachers');
-    const deleteTeacher = (id: string) => deleteInstance('teachers', id, setTeachers, 'school_teachers');
-
-    const addStudent = async (data: any) => {
-        const newItem = { 
-            ...data, id: `local-stu-${Date.now()}`, role: UserRole.STUDENT, isLocal: true,
-            avatar: `https://ui-avatars.com/api/?name=${data.name.replace(/\s/g, '+')}&background=random`,
-            rollNumber: `${data.class.substring(0,3)}${data.section}${Date.now().toString().slice(-4)}`
-        };
-        setStudents(prev => {
-            const newState = [newItem, ...prev];
-            localStorage.setItem('school_students', JSON.stringify(newState));
-            return newState;
-        });
-    };
-    const updateStudent = (id: string, data: any) => updateInstance('students', id, data, setStudents, 'school_students');
-    const deleteStudent = (id: string) => deleteInstance('students', id, setStudents, 'school_students');
 
     const promoteStudent = async (studentId: string): Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }> => {
         const student = students.find(s => s.id === studentId);
         if (!student) return { success: false, message: 'Estudiante no encontrado.', type: 'error' };
 
-        // 1. Verificación Financiera Bloqueante (Mora Crítica)
         if (student.financialStatus === 'Mora Crítica (Bloqueado)') {
-            return { 
-                success: false, 
-                message: 'No es posible promover al estudiante: Se encuentra en estado de MORA CRÍTICA. Debe ponerse al día antes de avanzar al siguiente nivel.',
-                type: 'error'
-            };
+            return { success: false, message: 'Bloqueo por mora crítica.', type: 'error' };
         }
 
-        // 2. Calcular Rendimiento Académico
         const studentGrades = grades.filter(g => g.studentId === studentId);
         const subjects: string[] = Array.from(new Set(studentGrades.map(g => g.subject)));
         
-        if (subjects.length === 0) return { success: false, message: 'No hay registros académicos para este semestre.', type: 'warning' };
+        if (subjects.length === 0) return { success: false, message: 'Sin registros académicos.', type: 'warning' };
 
         const semesterDetails = subjects.map(subj => {
             const subjGrades = studentGrades.filter(g => g.subject === subj);
@@ -253,7 +312,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         const gpa = semesterDetails.reduce((acc, d) => acc + d.finalGrade, 0) / semesterDetails.length;
         const passed = gpa >= 3.0;
 
-        // 3. Crear Registro Histórico
         const historyRecord: AcademicHistory = {
             semester: student.section,
             year: student.schoolYear,
@@ -265,30 +323,21 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             completionDate: new Date().toISOString()
         };
 
-        // 4. Actualizar Estudiante
         const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
         const updatedHistory = [...(student.history || []), historyRecord];
 
-        await updateInstance('students', studentId, {
-            section: nextSemester,
-            history: updatedHistory,
-            observation: passed 
-              ? `Promovido a semestre ${nextSemester}. ${student.financialStatus === 'Pendiente (Sensibilización)' ? 'Aviso: Pendiente regularizar finanzas.' : ''}` 
-              : `Reprobó semestre ${student.section}. Debe repetir.`
-        }, setStudents, 'school_students');
+        const newList = students.map(s => s.id === studentId ? { ...s, section: nextSemester, history: updatedHistory, observation: passed ? `Promovido a semestre ${nextSemester}` : `Reprobó semestre ${student.section}` } : s);
+        saveToStorage('school_students', newList, setStudents);
 
         return { 
             success: passed, 
-            message: passed 
-              ? `¡Felicidades! Estudiante promovido al semestre ${nextSemester}.` 
-              : `El estudiante no alcanzó el promedio mínimo (${gpa.toFixed(2)}). Debe repetir el semestre.`,
+            message: passed ? `Promovido a semestre ${nextSemester}.` : `Debe repetir el semestre (${gpa.toFixed(2)}).`,
             type: passed ? 'success' : 'warning'
         };
     };
 
     const value = {
-        isLoading, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, cancellations, homeroomAssignments, attendanceRecords,
-        setCampuses, setAdmins, setTeachers, setStudents, setHomeroomAssignments,
+        isLoading, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
         addCampus, updateCampus, deleteCampus, addAdmin, updateAdmin, deleteAdmin, addTeacher, updateTeacher, deleteTeacher,
         addStudent, updateStudent, deleteStudent, promoteStudent, addGrade, updateGrade, deleteGrade, addCommunication, updateCommunication, deleteCommunication,
         addExam, updateExam, deleteExam, addSchedule, updateSchedule, deleteSchedule, addAssignment, updateAssignment, deleteAssignment,
