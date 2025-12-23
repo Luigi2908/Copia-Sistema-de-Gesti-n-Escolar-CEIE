@@ -19,6 +19,7 @@ interface DataContextType {
     attendanceRecords: AttendanceRecord[];
     events: SchoolEvent[];
     isLoading: boolean;
+    error: string | null;
 
     addCampus: (data: any) => Promise<void>;
     updateCampus: (id: string, data: any) => Promise<void>;
@@ -61,7 +62,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const { isAuthenticated } = useAuth();
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const [campuses, setCampuses] = useState<Campus[]>([]);
     const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -78,11 +80,10 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const fetchData = async () => {
         if (!isAuthenticated) return;
         setIsLoading(true);
+        setError(null);
+        
         try {
-            const [
-                { data: camps }, { data: profs }, { data: grds }, { data: comms }, 
-                { data: schs }, { data: exms }, { data: evts }, { data: asgs }, { data: atts }
-            ] = await Promise.all([
+            const results = await Promise.allSettled([
                 supabase.from('campuses').select('*'),
                 supabase.from('profiles').select('*'),
                 supabase.from('grades').select('*'),
@@ -94,8 +95,13 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                 supabase.from('attendance').select('*')
             ]);
 
-            if (camps) {
-                setCampuses(camps.map(c => ({
+            const [
+                campsRes, profsRes, grdsRes, commsRes, 
+                schsRes, exmsRes, evtsRes, asgsRes, attsRes
+            ] = results;
+
+            if (campsRes.status === 'fulfilled' && campsRes.value.data) {
+                setCampuses(campsRes.value.data.map(c => ({
                     id: c.id,
                     name: c.name || 'Sede sin nombre',
                     address: c.address || 'Sin dirección',
@@ -105,7 +111,8 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                 })));
             }
 
-            if (profs) {
+            if (profsRes.status === 'fulfilled' && profsRes.value.data) {
+                const profs = profsRes.value.data;
                 setAdmins(profs.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
                     id: p.id,
                     name: p.name,
@@ -114,36 +121,39 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                     campusId: p.campus_id, 
                     campusName: p.campus_name,
                     status: p.status,
-                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${p.name.replace(' ', '+')}`
+                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
                 } as AdminUser)));
                 
                 setTeachers(profs.filter(p => p.role === UserRole.TEACHER).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number })));
                 setStudents(profs.filter(p => p.role === UserRole.STUDENT).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number })));
             }
-            setGrades(grds?.map(g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code })) || []);
-            setCommunications(comms?.map(c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles })) || []);
-            setSchedules(schs?.map(s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time })) || []);
-            setExams(exms?.map(e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score })) || []);
-            setEvents(evts?.map(e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type })) || []);
-            setAssignments(asgs?.map(a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria })) || []);
-            setAttendanceRecords(atts?.map(a => ({ ...a, studentId: a.student_id })) || []);
 
-        } catch (error) {
-            console.error("Error sincronizando Supabase:", error);
+            if (grdsRes.status === 'fulfilled' && grdsRes.value.data) setGrades(grdsRes.value.data.map(g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code })));
+            if (commsRes.status === 'fulfilled' && commsRes.value.data) setCommunications(commsRes.value.data.map(c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles })));
+            if (schsRes.status === 'fulfilled' && schsRes.value.data) setSchedules(schsRes.value.data.map(s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time })));
+            if (exmsRes.status === 'fulfilled' && exmsRes.value.data) setExams(exmsRes.value.data.map(e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score })));
+            if (evtsRes.status === 'fulfilled' && evtsRes.value.data) setEvents(evtsRes.value.data.map(e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type })));
+            if (asgsRes.status === 'fulfilled' && asgsRes.value.data) setAssignments(asgsRes.value.data.map(a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria })));
+            if (attsRes.status === 'fulfilled' && attsRes.value.data) setAttendanceRecords(attsRes.value.data.map(a => ({ ...a, studentId: a.student_id })));
+
+        } catch (err: any) {
+            console.error("Error cargando datos:", err);
+            setError(err.message);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        if (isAuthenticated) {
+            fetchData();
+        } else {
+            setIsLoading(false);
+        }
     }, [isAuthenticated]);
 
     const dbAdd = async (table: string, data: any) => {
-        // Garantizamos un ID único si no viene uno (evita errores de null en PK)
-        const recordId = data.id || crypto.randomUUID();
-        const dataWithId = { ...data, id: recordId };
-
+        const dataWithId = { ...data, id: data.id || crypto.randomUUID() };
         const mappedData = Object.keys(dataWithId).reduce((acc: any, key) => {
             const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
             acc[snakeKey] = dataWithId[key];
@@ -151,14 +161,7 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         }, {});
 
         const { error } = await supabase.from(table).insert([mappedData]);
-        
-        if (error) {
-            console.error(`Error insertando en ${table}:`, error);
-            if (error.code === '23503') {
-                throw new Error('Error de integridad: El script SQL para liberar la tabla profiles no se ejecutó correctamente.');
-            }
-            throw error;
-        }
+        if (error) throw error;
         await fetchData();
     };
 
@@ -177,26 +180,18 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const promoteStudent = async (studentId: string): Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }> => {
         const student = students.find(s => s.id === studentId);
         if (!student) return { success: false, message: 'No encontrado', type: 'error' };
-
-        if (student.financialStatus === 'Mora Crítica (Bloqueado)') {
-            return { success: false, message: 'Bloqueo Financiero', type: 'error' };
-        }
-
+        if (student.financialStatus === 'Mora Crítica (Bloqueado)') return { success: false, message: 'Bloqueo Financiero', type: 'error' };
         const studentGrades = grades.filter(g => g.studentId === studentId);
         const subjects: string[] = Array.from(new Set(studentGrades.map(g => g.subject)));
-        
         if (subjects.length === 0) return { success: false, message: 'Sin notas registradas', type: 'warning' };
-
         const details = subjects.map(subj => {
             const subjGrades = studentGrades.filter(g => g.subject === subj);
             const score = subjGrades.reduce((acc, g) => acc + (g.score * g.percentage / 100), 0);
             const perc = subjGrades.reduce((acc, g) => acc + g.percentage, 0);
             return { subject: subj, finalGrade: perc > 0 ? (score * 100) / perc : 0 };
         });
-
         const gpa = details.reduce((acc, d) => acc + d.finalGrade, 0) / details.length;
         const passed = gpa >= 3.0;
-
         const newHistory: AcademicHistory = {
             semester: student.section,
             year: student.schoolYear,
@@ -207,25 +202,15 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             details,
             completionDate: new Date().toISOString()
         };
-
         const updatedHistory = [...(student.history || []), newHistory];
         const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
-
-        await dbUpdate('profiles', studentId, {
-            section: nextSemester,
-            history: updatedHistory
-        });
-
-        return { 
-            success: passed, 
-            message: passed ? `Promovido a Semestre ${nextSemester}` : `Debe repetir semestre (${gpa.toFixed(2)})`,
-            type: passed ? 'success' : 'warning'
-        };
+        await dbUpdate('profiles', studentId, { section: nextSemester, history: updatedHistory });
+        return { success: passed, message: passed ? `Promovido a Semestre ${nextSemester}` : `Debe repetir semestre (${gpa.toFixed(2)})`, type: passed ? 'success' : 'warning' };
     };
 
     return (
         <DataContext.Provider value={{
-            isLoading, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
+            isLoading, error, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
             addCampus: (d) => dbAdd('campuses', d),
             updateCampus: (id, d) => dbUpdate('campuses', id, d),
             deleteCampus: (id) => supabase.from('campuses').delete().eq('id', id).then(() => fetchData()),

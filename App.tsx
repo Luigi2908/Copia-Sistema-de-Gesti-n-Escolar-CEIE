@@ -37,25 +37,43 @@ const MaintenanceView: React.FC<{ logout: () => void }> = ({ logout }) => (
 
 const AppContent: React.FC = () => {
     const { isAuthenticated, user, logout } = useAuth();
-    const { isLoading } = useData();
+    const { isLoading, error } = useData();
 
     if (isLoading && isAuthenticated) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-background dark:bg-slate-900">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-                    <h2 className="mt-4 text-xl font-semibold text-text-primary dark:text-slate-200">Cargando Datos...</h2>
-                    <p className="text-text-secondary dark:text-slate-400">Obteniendo la información más reciente.</p>
+            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+                <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800">
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <h2 className="mt-6 text-xl font-black text-slate-800 dark:text-white">Sincronizando información...</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Obteniendo la información más reciente desde el servidor.</p>
                 </div>
             </div>
         );
     }
 
-    // Check for maintenance mode
+    if (error && isAuthenticated) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+                <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-rose-100 dark:border-rose-900/30 max-w-sm">
+                    <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <ExclamationTriangleIcon className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-lg font-black text-slate-800 dark:text-white">Error de Sincronización</h2>
+                    <p className="text-slate-500 text-xs mt-2 leading-relaxed">{error}</p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="mt-6 w-full py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20"
+                    >
+                        Reintentar Conexión
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Mantenimiento
     const globalSettingsRaw = localStorage.getItem('school_global_settings');
     const isMaintenance = globalSettingsRaw ? JSON.parse(globalSettingsRaw).maintenanceMode : false;
-    
-    // Admins are bypass maintenance mode
     const isRestrictedUser = user && ![UserRole.SUPER_ADMIN, UserRole.CAMPUS_ADMIN].includes(user.role);
 
     if (isAuthenticated && isMaintenance && isRestrictedUser) {

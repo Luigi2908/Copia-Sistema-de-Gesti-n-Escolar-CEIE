@@ -20,21 +20,25 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Timeout manual para la base de datos (4 segundos)
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout de base de datos')), 4000)
+      );
+
+      const { data, error }: any = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error) {
         console.error("Error al obtener perfil:", error.message);
         return null;
       }
 
-      if (!data) {
-        console.warn(`No se encontró registro en 'profiles' para el ID: ${userId}`);
-        return null;
-      }
+      if (!data) return null;
       
       return {
           id: data.id,
@@ -59,12 +63,19 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   };
 
   const refreshSession = async () => {
-    setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const profile = await fetchUserProfile(session.user.id);
-        if (profile) setUser(profile as User);
+        if (profile) {
+            setUser(profile as User);
+        } else {
+            // Si el usuario está autenticado en Auth pero no tiene perfil,
+            // permitimos el acceso limitado o forzamos logout si es necesario.
+            setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     } catch (e) {
         console.error("Error en refreshSession:", e);
@@ -75,48 +86,46 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
   useEffect(() => {
     refreshSession();
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         const profile = await fetchUserProfile(session.user.id);
         if (profile) setUser(profile as User);
+        setLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setLoading(false);
       }
     });
-    return () => authListener.subscription.unsubscribe();
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
-    // 1. Autenticación técnica
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
       if (error.message.includes("Invalid login credentials")) {
-        throw new Error("Credenciales inválidas. Verifique su correo y contraseña.");
+        throw new Error("El correo o la contraseña son incorrectos.");
       }
       throw error;
     }
 
     if (data.user) {
-      // 2. Obtener el perfil
       const profile = await fetchUserProfile(data.user.id);
-      
       if (!profile) {
-        // Si no hay perfil, el usuario no existe en nuestra tabla lógica
         await supabase.auth.signOut();
-        throw new Error("El usuario no tiene un perfil vinculado. Contacte al administrador.");
+        throw new Error("Su cuenta de usuario no tiene un perfil configurado en la base de datos.");
       }
-
-      // 3. Validar Rol (Comparación robusta)
-      // Normalizamos ambos strings para evitar errores de espacios o mayúsculas
-      const dbRole = String(profile.role).trim().toLowerCase();
-      const selectedRole = String(role).trim().toLowerCase();
-
-      if (dbRole !== selectedRole) {
+      if (profile.role !== role) {
         await supabase.auth.signOut();
-        throw new Error(`Acceso denegado: Has seleccionado el perfil de '${role}', pero tu cuenta está registrada como '${profile.role}'.`);
+        throw new Error(`Acceso denegado: Su perfil es de '${profile.role}' y no de '${role}'.`);
       }
-
       setUser(profile as User);
     }
   };
@@ -134,8 +143,9 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, sendPasswordReset, refreshSession }}>
       {loading ? (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-slate-400 font-medium animate-pulse text-sm">Iniciando sistema...</p>
         </div>
       ) : children}
     </AuthContext.Provider>
