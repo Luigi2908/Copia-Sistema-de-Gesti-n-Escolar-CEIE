@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
       if (error) {
         console.error("Error de base de datos al buscar perfil:", error.message);
-        if (error.message.includes("recursion")) {
-          setDbError("Error crítico de configuración en la base de datos (Recursión en RLS). Por favor, ejecute el script de reparación SQL.");
+        if (error.message.includes("recursion") || error.message.includes("infinite")) {
+          setDbError("Error de recursión en RLS detectado. Por favor, ejecute el script de reparación SQL en Supabase.");
         }
         return null;
       }
@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   };
 
   const refreshSession = async () => {
+    setLoading(true);
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
@@ -76,16 +77,16 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
         if (profile) {
           setUser(profile as User);
         } else {
-          // Si hay sesión pero no hay perfil o hay error de DB, no forzamos logout inmediato
-          // permitimos que el estado de carga termine para mostrar el error si existe
-          if (!dbError) {
-             await supabase.auth.signOut();
-             setUser(null);
-          }
+          // Si hay sesión de Auth pero no hay perfil en la tabla, cerramos sesión para evitar bucles
+          console.warn("Sesión activa de Auth pero sin perfil. Forzando logout.");
+          await supabase.auth.signOut();
+          setUser(null);
         }
       } else {
         setUser(null);
       }
+    } catch (e) {
+        console.error("Error en refreshSession:", e);
     } finally {
       setLoading(false);
     }
@@ -120,7 +121,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
     if (error) {
       if (error.message.includes("Email not confirmed")) {
-        throw new Error("El correo electrónico no ha sido confirmado en Supabase.");
+        throw new Error("El correo electrónico no ha sido confirmado.");
       }
       throw error;
     }
@@ -128,19 +129,22 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     if (data.user) {
       const profile = await fetchUserProfile(data.user.id);
       if (!profile) {
-        if (dbError) throw new Error(dbError);
         await supabase.auth.signOut();
-        throw new Error("Acceso denegado: El usuario no tiene un perfil configurado en la base de datos.");
+        throw new Error("Acceso denegado: No se encontró su perfil académico en la base de datos.");
       }
-      
       setUser(profile as User);
     }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setDbError(null);
+    setLoading(true);
+    try {
+        await supabase.auth.signOut();
+        setUser(null);
+        setDbError(null);
+    } finally {
+        setLoading(false);
+    }
   };
   
   const sendPasswordReset = async (email: string) => {
@@ -151,29 +155,37 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, sendPasswordReset, refreshSession }}>
       {(!loading && !dbError) ? children : (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="text-center p-8 max-w-md">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+          <div className="text-center p-8 max-w-md animate-fade-in">
             {dbError ? (
-              <div className="animate-fade-in">
-                <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border border-rose-100 dark:border-rose-900/30">
+                <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-slate-800 mb-2">Error de Base de Datos</h2>
-                <p className="text-slate-600 mb-6">{dbError}</p>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Error de Sincronización</h2>
+                <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm leading-relaxed">{dbError}</p>
                 <button 
                   onClick={() => window.location.reload()}
-                  className="bg-primary text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all"
+                  className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-primary/20 transition-all"
                 >
-                  Reintentar
+                  Reintentar Conexión
                 </button>
               </div>
             ) : (
-              <>
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-slate-600 font-medium">Iniciando sistema...</p>
-              </>
+              <div className="space-y-4">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-slate-200 border-t-primary rounded-full animate-spin mx-auto"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-ping"></div>
+                    </div>
+                </div>
+                <div>
+                    <p className="text-slate-800 dark:text-white font-black text-lg tracking-tight">Portal CEIE</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Iniciando sistema seguro...</p>
+                </div>
+              </div>
             )}
           </div>
         </div>
