@@ -124,8 +124,23 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                     avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
                 } as AdminUser)));
                 
-                setTeachers(profs.filter(p => p.role === UserRole.TEACHER).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number })));
-                setStudents(profs.filter(p => p.role === UserRole.STUDENT).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number })));
+                setTeachers(profs.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
+                    ...p, 
+                    campusId: p.campus_id, 
+                    campusName: p.campus_name, 
+                    documentNumber: p.document_number || p.documentNumber 
+                })));
+
+                setStudents(profs.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
+                    ...p, 
+                    campusId: p.campus_id, 
+                    campusName: p.campus_name, 
+                    rollNumber: p.roll_number || p.rollNumber, 
+                    schoolPeriod: p.school_period || p.schoolPeriod, 
+                    schoolYear: p.school_year || p.schoolYear, 
+                    financialStatus: p.financial_status || p.financialStatus, 
+                    documentNumber: p.document_number || p.documentNumber 
+                })));
             }
 
             if (grdsRes.status === 'fulfilled' && grdsRes.value.data) setGrades(grdsRes.value.data.map(g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code })));
