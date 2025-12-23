@@ -1,8 +1,10 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { 
-    Campus, AdminUser, Teacher, Student, Grade, Communication, ClassSchedule, Exam, TeacherCourseAssignment, UserRole, AttendanceRecord, SchoolEvent, AcademicHistory
+    Campus, AdminUser, Teacher, Student, Grade, Communication, ClassSchedule, Exam, TeacherCourseAssignment, UserRole, AttendanceRecord, SchoolEvent
 } from '../types';
+import { useAuth } from './AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 interface DataContextType {
     campuses: Campus[];
@@ -58,6 +60,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children?: ReactNode }) => {
+    const { isAuthenticated, user } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [campuses, setCampuses] = useState<Campus[]>([]);
     const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -71,280 +74,113 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const [assignments, setAssignments] = useState<TeacherCourseAssignment[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
-    const loadFromStorage = () => {
+    const fetchData = async () => {
+        if (!isAuthenticated) return;
         setIsLoading(true);
-        setCampuses(JSON.parse(localStorage.getItem('school_campuses') || '[]'));
-        setAdmins(JSON.parse(localStorage.getItem('school_admins') || '[]'));
-        setTeachers(JSON.parse(localStorage.getItem('school_teachers') || '[]'));
-        setStudents(JSON.parse(localStorage.getItem('school_students') || '[]'));
-        setGrades(JSON.parse(localStorage.getItem('school_grades') || '[]'));
-        setCommunications(JSON.parse(localStorage.getItem('school_communications') || '[]'));
-        setSchedules(JSON.parse(localStorage.getItem('school_schedules') || '[]'));
-        setExams(JSON.parse(localStorage.getItem('school_exams') || '[]'));
-        setEvents(JSON.parse(localStorage.getItem('school_events') || '[]'));
-        setAssignments(JSON.parse(localStorage.getItem('teacher_assignments') || '[]'));
-        setAttendanceRecords(JSON.parse(localStorage.getItem('school_attendance') || '[]'));
-        setIsLoading(false);
+        try {
+            const [
+                { data: camps }, { data: profs }, { data: grds }, { data: comms }, 
+                { data: schs }, { data: exms }, { data: evts }, { data: asgs }, { data: atts }
+            ] = await Promise.all([
+                supabase.from('campuses').select('*'),
+                supabase.from('profiles').select('*'),
+                supabase.from('grades').select('*'),
+                supabase.from('communications').select('*'),
+                supabase.from('schedules').select('*'),
+                supabase.from('exams').select('*'),
+                supabase.from('school_events').select('*'),
+                supabase.from('teacher_assignments').select('*'),
+                supabase.from('attendance').select('*')
+            ]);
+
+            setCampuses(camps || []);
+            if (profs) {
+                setAdmins(profs.filter(p => p.role === UserRole.CAMPUS_ADMIN));
+                setTeachers(profs.filter(p => p.role === UserRole.TEACHER));
+                setStudents(profs.filter(p => p.role === UserRole.STUDENT));
+            }
+            setGrades(grds || []);
+            setCommunications(comms || []);
+            setSchedules(schs || []);
+            setExams(exms || []);
+            setEvents(evts || []);
+            setAssignments(asgs || []);
+            setAttendanceRecords(atts || []);
+        } catch (error) {
+            console.error("Sync Error:", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
-        loadFromStorage();
-    }, []);
+        fetchData();
+    }, [isAuthenticated]);
 
-    const saveToStorage = (key: string, data: any, stateSetter: any) => {
-        localStorage.setItem(key, JSON.stringify(data));
-        stateSetter(data);
+    // Helpers genéricos para Supabase
+    const dbAdd = async (table: string, data: any) => {
+        const { error } = await supabase.from(table).insert([data]);
+        if (error) throw error;
+        await fetchData();
     };
 
-    // CRUD Methods
-    const addCampus = async (data: any) => {
-        const newList = [...campuses, { ...data, id: `CAMP-${Date.now()}`, teachers: 0, students: 0 }];
-        saveToStorage('school_campuses', newList, setCampuses);
+    const dbUpdate = async (table: string, id: string, data: any) => {
+        const { error } = await supabase.from(table).update(data).eq('id', id);
+        if (error) throw error;
+        await fetchData();
     };
 
-    const updateCampus = async (id: string, data: any) => {
-        const newList = campuses.map(c => c.id === id ? { ...c, ...data } : c);
-        saveToStorage('school_campuses', newList, setCampuses);
+    const dbDelete = async (table: string, id: string) => {
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        if (error) throw error;
+        await fetchData();
     };
 
-    const deleteCampus = async (id: string) => {
-        const newList = campuses.filter(c => c.id !== id);
-        saveToStorage('school_campuses', newList, setCampuses);
-    };
-
-    const addAdmin = async (data: any) => {
-        const newList = [...admins, { ...data, id: `ADM-${Date.now()}`, role: UserRole.CAMPUS_ADMIN, avatar: `https://ui-avatars.com/api/?name=${data.name.replace(' ', '+')}` }];
-        saveToStorage('school_admins', newList, setAdmins);
-    };
-
-    const updateAdmin = async (id: string, data: any) => {
-        const newList = admins.map(a => a.id === id ? { ...a, ...data } : a);
-        saveToStorage('school_admins', newList, setAdmins);
-    };
-
-    const deleteAdmin = async (id: string) => {
-        const newList = admins.filter(a => a.id !== id);
-        saveToStorage('school_admins', newList, setAdmins);
-    };
-
-    const addTeacher = async (data: any) => {
-        const newList = [...teachers, { ...data, id: `TEA-${Date.now()}`, role: UserRole.TEACHER, avatar: `https://ui-avatars.com/api/?name=${data.name.replace(' ', '+')}` }];
-        saveToStorage('school_teachers', newList, setTeachers);
-    };
-
-    const updateTeacher = async (id: string, data: any) => {
-        const newList = teachers.map(t => t.id === id ? { ...t, ...data } : t);
-        saveToStorage('school_teachers', newList, setTeachers);
-    };
-
-    const deleteTeacher = async (id: string) => {
-        const newList = teachers.filter(t => t.id !== id);
-        saveToStorage('school_teachers', newList, setTeachers);
-    };
-
-    const addStudent = async (data: any) => {
-        const id = `STU-${Date.now()}`;
-        const newList = [...students, { ...data, id, role: UserRole.STUDENT, avatar: `https://ui-avatars.com/api/?name=${data.name.replace(' ', '+')}`, rollNumber: `${data.class.substring(0,3)}${Date.now().toString().slice(-4)}` }];
-        saveToStorage('school_students', newList, setStudents);
-    };
-
-    const updateStudent = async (id: string, data: any) => {
-        const newList = students.map(s => s.id === id ? { ...s, ...data } : s);
-        saveToStorage('school_students', newList, setStudents);
-    };
-
-    const deleteStudent = async (id: string) => {
-        const newList = students.filter(s => s.id !== id);
-        saveToStorage('school_students', newList, setStudents);
-    };
-
-    const addGrade = async (data: any) => {
-        const newList = [...grades, { ...data, id: `GRD-${Date.now()}` }];
-        saveToStorage('school_grades', newList, setGrades);
-    };
-
-    const updateGrade = async (id: string, data: any) => {
-        const newList = grades.map(g => g.id === id ? { ...g, ...data } : g);
-        saveToStorage('school_grades', newList, setGrades);
-    };
-
-    const deleteGrade = async (id: string) => {
-        const newList = grades.filter(g => g.id !== id);
-        saveToStorage('school_grades', newList, setGrades);
-    };
-
-    const addCommunication = async (data: any) => {
-        const newList = [...communications, { ...data, id: `COM-${Date.now()}`, date: new Date().toISOString() }];
-        saveToStorage('school_communications', newList, setCommunications);
-    };
-
-    const updateCommunication = async (id: string, data: any) => {
-        const newList = communications.map(c => c.id === id ? { ...c, ...data } : c);
-        saveToStorage('school_communications', newList, setCommunications);
-    };
-
-    const deleteCommunication = async (id: string) => {
-        const newList = communications.filter(c => c.id !== id);
-        saveToStorage('school_communications', newList, setCommunications);
-    };
-
-    const addExam = async (data: any) => {
-        const newList = [...exams, { ...data, id: `EXM-${Date.now()}` }];
-        saveToStorage('school_exams', newList, setExams);
-    };
-
-    const updateExam = async (id: string, data: any) => {
-        const newList = exams.map(e => e.id === id ? { ...e, ...data } : e);
-        saveToStorage('school_exams', newList, setExams);
-    };
-
-    const deleteExam = async (id: string) => {
-        const newList = exams.filter(e => e.id !== id);
-        saveToStorage('school_exams', newList, setExams);
-    };
-
-    const addSchedule = async (data: any) => {
-        const newList = [...schedules, { ...data, id: `SCH-${Date.now()}` }];
-        saveToStorage('school_schedules', newList, setSchedules);
-    };
-
-    const updateSchedule = async (id: string, data: any) => {
-        const newList = schedules.map(s => s.id === id ? { ...s, ...data } : s);
-        saveToStorage('school_schedules', newList, setSchedules);
-    };
-
-    const deleteSchedule = async (id: string) => {
-        const newList = schedules.filter(s => s.id !== id);
-        saveToStorage('school_schedules', newList, setSchedules);
-    };
-
-    const addAssignment = async (data: any) => {
-        const newList = [...assignments, { ...data, id: `ASG-${Date.now()}` }];
-        saveToStorage('teacher_assignments', newList, setAssignments);
-    };
-
-    const updateAssignment = async (id: string, data: any) => {
-        const newList = assignments.map(a => a.id === id ? { ...a, ...data } : a);
-        saveToStorage('teacher_assignments', newList, setAssignments);
-    };
-
-    const deleteAssignment = async (id: string) => {
-        const newList = assignments.filter(a => a.id !== id);
-        saveToStorage('teacher_assignments', newList, setAssignments);
-    };
-
-    const addEvent = async (data: any) => {
-        const newList = [...events, { ...data, id: `EVT-${Date.now()}` }];
-        saveToStorage('school_events', newList, setEvents);
-    };
-
-    const updateEvent = async (id: string, data: any) => {
-        const newList = events.map(e => e.id === id ? { ...e, ...data } : e);
-        saveToStorage('school_events', newList, setEvents);
-    };
-
-    const deleteEvent = async (id: string) => {
-        const newList = events.filter(e => e.id !== id);
-        saveToStorage('school_events', newList, setEvents);
-    };
-
-    const saveAttendance = async (data: any) => {
-        const existingIdx = attendanceRecords.findIndex(r => r.studentId === data.studentId && r.date === data.date && r.period === data.period);
-        let newList;
-        if (existingIdx > -1) {
-            newList = [...attendanceRecords];
-            newList[existingIdx] = { ...newList[existingIdx], ...data };
-        } else {
-            newList = [...attendanceRecords, { ...data, id: `ATT-${Date.now()}` }];
-        }
-        saveToStorage('school_attendance', newList, setAttendanceRecords);
-    };
-
-    const deleteAttendance = async (id: string) => {
-        const newList = attendanceRecords.filter(r => r.id !== id);
-        saveToStorage('school_attendance', newList, setAttendanceRecords);
-    };
-
-    const updateUserAvatar = async (userId: string, role: UserRole, avatar: string) => {
-        let key = '';
-        let setter: any;
-        let list: any[];
-
-        if (role === UserRole.CAMPUS_ADMIN) { key = 'school_admins'; setter = setAdmins; list = admins; }
-        else if (role === UserRole.TEACHER) { key = 'school_teachers'; setter = setTeachers; list = teachers; }
-        else if (role === UserRole.STUDENT) { key = 'school_students'; setter = setStudents; list = students; }
-        else if (role === UserRole.PARENT) { key = 'school_parents'; setter = setStudents; list = students; } // Parents usually share student ID context or own key
-
-        if (key) {
-            const newList = list.map(u => u.id === userId ? { ...u, avatar } : u);
-            saveToStorage(key, newList, setter);
-            const currentUser = JSON.parse(localStorage.getItem('school_current_user') || '{}');
-            if (currentUser.id === userId) {
-                localStorage.setItem('school_current_user', JSON.stringify({ ...currentUser, avatar }));
-            }
-        }
-    };
-
-    const assignTemporaryPassword = async (userId: string, role: UserRole, tempPass: string) => {
-        console.log(`Asignando clave temporal ${tempPass} al usuario ${userId}`);
-    };
-
-    const promoteStudent = async (studentId: string): Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }> => {
-        const student = students.find(s => s.id === studentId);
-        if (!student) return { success: false, message: 'Estudiante no encontrado.', type: 'error' };
-
-        if (student.financialStatus === 'Mora Crítica (Bloqueado)') {
-            return { success: false, message: 'Bloqueo por mora crítica.', type: 'error' };
-        }
-
-        const studentGrades = grades.filter(g => g.studentId === studentId);
-        const subjects: string[] = Array.from(new Set(studentGrades.map(g => g.subject)));
-        
-        if (subjects.length === 0) return { success: false, message: 'Sin registros académicos.', type: 'warning' };
-
-        const semesterDetails = subjects.map(subj => {
-            const subjGrades = studentGrades.filter(g => g.subject === subj);
-            const totalScore = subjGrades.reduce((acc, g) => acc + (g.score * g.percentage / 100), 0);
-            const totalPerc = subjGrades.reduce((acc, g) => acc + g.percentage, 0);
-            return { subject: subj, finalGrade: totalPerc > 0 ? (totalScore * 100) / totalPerc : 0 };
-        });
-
-        const gpa = semesterDetails.reduce((acc, d) => acc + d.finalGrade, 0) / semesterDetails.length;
-        const passed = gpa >= 3.0;
-
-        const historyRecord: AcademicHistory = {
-            semester: student.section,
-            year: student.schoolYear,
-            period: student.schoolPeriod,
-            gpa: parseFloat(gpa.toFixed(2)),
-            status: passed ? 'Aprobado' : 'Reprobado',
-            financialStatusAtClosing: student.financialStatus || 'Al día',
-            details: semesterDetails,
-            completionDate: new Date().toISOString()
-        };
-
-        const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
-        const updatedHistory = [...(student.history || []), historyRecord];
-
-        const newList = students.map(s => s.id === studentId ? { ...s, section: nextSemester, history: updatedHistory, observation: passed ? `Promovido a semestre ${nextSemester}` : `Reprobó semestre ${student.section}` } : s);
-        saveToStorage('school_students', newList, setStudents);
-
-        return { 
-            success: passed, 
-            message: passed ? `Promovido a semestre ${nextSemester}.` : `Debe repetir el semestre (${gpa.toFixed(2)}).`,
-            type: passed ? 'success' : 'warning'
-        };
-    };
-
-    const value = {
-        isLoading, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
-        addCampus, updateCampus, deleteCampus, addAdmin, updateAdmin, deleteAdmin, addTeacher, updateTeacher, deleteTeacher,
-        addStudent, updateStudent, deleteStudent, promoteStudent, addGrade, updateGrade, deleteGrade, addCommunication, updateCommunication, deleteCommunication,
-        addExam, updateExam, deleteExam, addSchedule, updateSchedule, deleteSchedule, addAssignment, updateAssignment, deleteAssignment,
-        addEvent, updateEvent, deleteEvent, updateUserAvatar, saveAttendance, deleteAttendance, assignTemporaryPassword
-    };
-
-    return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+    return (
+        <DataContext.Provider value={{
+            isLoading, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
+            addCampus: (d) => dbAdd('campuses', d),
+            updateCampus: (id, d) => dbUpdate('campuses', id, d),
+            deleteCampus: (id) => dbDelete('campuses', id),
+            addAdmin: (d) => dbAdd('profiles', { ...d, role: UserRole.CAMPUS_ADMIN }),
+            updateAdmin: (id, d) => dbUpdate('profiles', id, d),
+            deleteAdmin: (id) => dbDelete('profiles', id),
+            addTeacher: (d) => dbAdd('profiles', { ...d, role: UserRole.TEACHER }),
+            updateTeacher: (id, d) => dbUpdate('profiles', id, d),
+            deleteTeacher: (id) => dbDelete('profiles', id),
+            addStudent: (d) => dbAdd('profiles', { ...d, role: UserRole.STUDENT }),
+            updateStudent: (id, d) => dbUpdate('profiles', id, d),
+            deleteStudent: (id) => dbDelete('profiles', id),
+            addGrade: (d) => dbAdd('grades', d),
+            updateGrade: (id, d) => dbUpdate('grades', id, d),
+            deleteGrade: (id) => dbDelete('grades', id),
+            addCommunication: (d) => dbAdd('communications', { ...d, date: new Date() }),
+            updateCommunication: (id, d) => dbUpdate('communications', id, d),
+            deleteCommunication: (id) => dbDelete('communications', id),
+            addExam: (d) => dbAdd('exams', d),
+            updateExam: (id, d) => dbUpdate('exams', id, d),
+            deleteExam: (id) => dbDelete('exams', id),
+            addSchedule: (d) => dbAdd('schedules', d),
+            updateSchedule: (id, d) => dbUpdate('schedules', id, d),
+            deleteSchedule: (id) => dbDelete('schedules', id),
+            addAssignment: (d) => dbAdd('teacher_assignments', d),
+            updateAssignment: (id, d) => dbUpdate('teacher_assignments', id, d),
+            deleteAssignment: (id) => dbDelete('teacher_assignments', id),
+            addEvent: (d) => dbAdd('school_events', d),
+            updateEvent: (id, d) => dbUpdate('school_events', id, d),
+            deleteEvent: (id) => dbDelete('school_events', id),
+            saveAttendance: async (d) => {
+                const { data: ex } = await supabase.from('attendance').select('id').eq('student_id', d.studentId).eq('date', d.date).maybeSingle();
+                if (ex) await dbUpdate('attendance', ex.id, d); else await dbAdd('attendance', d);
+            },
+            deleteAttendance: (id) => dbDelete('attendance', id),
+            updateUserAvatar: (id, role, avatar) => dbUpdate('profiles', id, { avatar }),
+            assignTemporaryPassword: async (id, role, p) => { console.warn("Clave provisional:", p); },
+            promoteStudent: async (id) => { return { success: true, message: "Promoción exitosa (Modo Nube)" }; }
+        }}>
+            {children}
+        </DataContext.Provider>
+    );
 };
 
 export const useData = (): DataContextType => {
