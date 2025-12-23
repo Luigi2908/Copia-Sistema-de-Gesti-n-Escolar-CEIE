@@ -26,10 +26,28 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       .single();
 
     if (error) {
-      console.error("Error al obtener perfil:", error);
+      console.error("Error al obtener perfil:", error.message);
       return null;
     }
-    return data;
+    
+    // Mapeo de campos de base de datos a interfaz de usuario
+    return {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role as UserRole,
+        campusId: data.campus_id,
+        campusName: data.campus_name,
+        avatar: data.avatar || `https://ui-avatars.com/api/?name=${data.name.replace(' ', '+')}`,
+        // Campos de estudiante
+        class: data.class,
+        section: data.section,
+        rollNumber: data.roll_number,
+        schoolPeriod: data.school_period,
+        schoolYear: data.school_year,
+        financialStatus: data.financial_status,
+        history: data.history
+    };
   };
 
   const refreshSession = async () => {
@@ -37,10 +55,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     if (session) {
       const profile = await fetchUserProfile(session.user.id);
       if (profile) {
-        setUser({
-          ...profile,
-          email: session.user.email,
-        });
+        setUser(profile as User);
       }
     } else {
       setUser(null);
@@ -55,7 +70,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       if (session) {
         const profile = await fetchUserProfile(session.user.id);
         if (profile) {
-          setUser({ ...profile, email: session.user.email });
+          setUser(profile as User);
         }
       } else {
         setUser(null);
@@ -79,9 +94,9 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       const profile = await fetchUserProfile(data.user.id);
       if (!profile) {
         await supabase.auth.signOut();
-        throw new Error("No se encontró el perfil de usuario en la base de datos.");
+        throw new Error("No se encontró un perfil vinculado a esta cuenta en la base de datos.");
       }
-      setUser({ ...profile, email: data.user.email });
+      setUser(profile as User);
     }
   };
 
