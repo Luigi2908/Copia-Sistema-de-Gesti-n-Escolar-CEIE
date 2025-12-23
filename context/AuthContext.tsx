@@ -17,7 +17,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dbError, setDbError] = useState<string | null>(null);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -28,23 +27,20 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
         .maybeSingle();
 
       if (error) {
-        console.error("Error de base de datos al buscar perfil:", error.message);
-        if (error.message.includes("recursion") || error.message.includes("infinite")) {
-          setDbError("Error de recursión en RLS detectado. Por favor, ejecute el script de reparación SQL en Supabase.");
-        }
+        console.error("Error al obtener perfil:", error.message);
         return null;
       }
 
       if (!data) {
-        console.warn("No existe fila en la tabla 'profiles' para el ID:", userId);
+        console.warn(`No se encontró registro en 'profiles' para el ID: ${userId}`);
         return null;
       }
       
       return {
           id: data.id,
-          name: data.name || 'Usuario sin nombre',
+          name: data.name || 'Usuario',
           email: data.email,
-          role: (data.role as UserRole) || UserRole.STUDENT,
+          role: (data.role as UserRole),
           campusId: data.campus_id,
           campusName: data.campus_name,
           avatar: data.avatar || `https://ui-avatars.com/api/?name=${(data.name || 'U').replace(' ', '+')}`,
@@ -65,25 +61,10 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const refreshSession = async () => {
     setLoading(true);
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error("Error obteniendo sesión:", error.message);
-        setLoading(false);
-        return;
-      }
-
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const profile = await fetchUserProfile(session.user.id);
-        if (profile) {
-          setUser(profile as User);
-        } else {
-          // Si hay sesión de Auth pero no hay perfil en la tabla, cerramos sesión para evitar bucles
-          console.warn("Sesión activa de Auth pero sin perfil. Forzando logout.");
-          await supabase.auth.signOut();
-          setUser(null);
-        }
-      } else {
-        setUser(null);
+        if (profile) setUser(profile as User);
       }
     } catch (e) {
         console.error("Error en refreshSession:", e);
@@ -94,57 +75,55 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
   useEffect(() => {
     refreshSession();
-
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         const profile = await fetchUserProfile(session.user.id);
-        if (profile) {
-          setUser(profile as User);
-        }
+        if (profile) setUser(profile as User);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setDbError(null);
       }
     });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => authListener.subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
-    setDbError(null);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // 1. Autenticación técnica
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      if (error.message.includes("Email not confirmed")) {
-        throw new Error("El correo electrónico no ha sido confirmado.");
+      if (error.message.includes("Invalid login credentials")) {
+        throw new Error("Credenciales inválidas. Verifique su correo y contraseña.");
       }
       throw error;
     }
 
     if (data.user) {
+      // 2. Obtener el perfil
       const profile = await fetchUserProfile(data.user.id);
+      
       if (!profile) {
+        // Si no hay perfil, el usuario no existe en nuestra tabla lógica
         await supabase.auth.signOut();
-        throw new Error("Acceso denegado: No se encontró su perfil académico en la base de datos.");
+        throw new Error("El usuario no tiene un perfil vinculado. Contacte al administrador.");
       }
+
+      // 3. Validar Rol (Comparación robusta)
+      // Normalizamos ambos strings para evitar errores de espacios o mayúsculas
+      const dbRole = String(profile.role).trim().toLowerCase();
+      const selectedRole = String(role).trim().toLowerCase();
+
+      if (dbRole !== selectedRole) {
+        await supabase.auth.signOut();
+        throw new Error(`Acceso denegado: Has seleccionado el perfil de '${role}', pero tu cuenta está registrada como '${profile.role}'.`);
+      }
+
       setUser(profile as User);
     }
   };
 
   const logout = async () => {
-    setLoading(true);
-    try {
-        await supabase.auth.signOut();
-        setUser(null);
-        setDbError(null);
-    } finally {
-        setLoading(false);
-    }
+    await supabase.auth.signOut();
+    setUser(null);
   };
   
   const sendPasswordReset = async (email: string) => {
@@ -154,42 +133,11 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, sendPasswordReset, refreshSession }}>
-      {(!loading && !dbError) ? children : (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
-          <div className="text-center p-8 max-w-md animate-fade-in">
-            {dbError ? (
-              <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border border-rose-100 dark:border-rose-900/30">
-                <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Error de Sincronización</h2>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm leading-relaxed">{dbError}</p>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="w-full bg-primary text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-primary/20 transition-all"
-                >
-                  Reintentar Conexión
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative">
-                    <div className="w-16 h-16 border-4 border-slate-200 border-t-primary rounded-full animate-spin mx-auto"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-primary rounded-full animate-ping"></div>
-                    </div>
-                </div>
-                <div>
-                    <p className="text-slate-800 dark:text-white font-black text-lg tracking-tight">Portal CEIE</p>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Iniciando sistema seguro...</p>
-                </div>
-              </div>
-            )}
-          </div>
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
-      )}
+      ) : children}
     </AuthContext.Provider>
   );
 };
