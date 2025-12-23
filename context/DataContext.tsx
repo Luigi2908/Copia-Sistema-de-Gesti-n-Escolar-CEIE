@@ -60,7 +60,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children?: ReactNode }) => {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
 
     const [campuses, setCampuses] = useState<Campus[]>([]);
@@ -106,7 +106,17 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             }
 
             if (profs) {
-                setAdmins(profs.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name })));
+                setAdmins(profs.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
+                    id: p.id,
+                    name: p.name,
+                    email: p.email,
+                    role: p.role,
+                    campusId: p.campus_id, 
+                    campusName: p.campus_name,
+                    status: p.status,
+                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${p.name.replace(' ', '+')}`
+                } as AdminUser)));
+                
                 setTeachers(profs.filter(p => p.role === UserRole.TEACHER).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number })));
                 setStudents(profs.filter(p => p.role === UserRole.STUDENT).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number })));
             }
@@ -130,13 +140,9 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     }, [isAuthenticated]);
 
     const dbAdd = async (table: string, data: any) => {
-        // Clonamos la data para no modificar el original
-        const dataWithId = { ...data };
-        
-        // Generamos un ID si no existe (solución al error violates not-null constraint)
-        if (!dataWithId.id) {
-            dataWithId.id = crypto.randomUUID();
-        }
+        // Garantizamos un ID único si no viene uno (evita errores de null en PK)
+        const recordId = data.id || crypto.randomUUID();
+        const dataWithId = { ...data, id: recordId };
 
         const mappedData = Object.keys(dataWithId).reduce((acc: any, key) => {
             const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -145,7 +151,14 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         }, {});
 
         const { error } = await supabase.from(table).insert([mappedData]);
-        if (error) throw error;
+        
+        if (error) {
+            console.error(`Error insertando en ${table}:`, error);
+            if (error.code === '23503') {
+                throw new Error('Error de integridad: El script SQL para liberar la tabla profiles no se ejecutó correctamente.');
+            }
+            throw error;
+        }
         await fetchData();
     };
 
