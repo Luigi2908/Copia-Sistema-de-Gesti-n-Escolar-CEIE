@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import LoginPage from './components/auth/LoginPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { DataProvider, useData } from './context/DataContext';
 import { UserRole } from './types';
-import { ExclamationTriangleIcon, LogoutIcon } from './components/icons';
+import { ExclamationTriangleIcon, LogoutIcon, CheckIcon } from './components/icons';
 
 const MaintenanceView: React.FC<{ logout: () => void }> = ({ logout }) => (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
@@ -38,14 +38,37 @@ const MaintenanceView: React.FC<{ logout: () => void }> = ({ logout }) => (
 const AppContent: React.FC = () => {
     const { isAuthenticated, user, logout } = useAuth();
     const { isLoading, error } = useData();
+    const [showForceButton, setShowForceButton] = useState(false);
+
+    useEffect(() => {
+        let timer: any;
+        if (isLoading && isAuthenticated) {
+            timer = setTimeout(() => setShowForceButton(true), 6000);
+        } else {
+            setShowForceButton(false);
+        }
+        return () => clearTimeout(timer);
+    }, [isLoading, isAuthenticated]);
 
     if (isLoading && isAuthenticated) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
-                <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-center p-10 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 max-w-sm w-full mx-4">
                     <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <h2 className="mt-6 text-xl font-black text-slate-800 dark:text-white">Sincronizando información...</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Obteniendo la información más reciente desde el servidor.</p>
+                    <h2 className="mt-8 text-xl font-black text-slate-800 dark:text-white">Sincronizando Datos</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">Estamos preparando su entorno académico personalizado.</p>
+                    
+                    {showForceButton && (
+                        <div className="mt-8 animate-fade-in">
+                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest mb-4">¿La conexión está lenta?</p>
+                            <button 
+                                onClick={() => window.location.reload()}
+                                className="w-full py-3.5 bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all shadow-lg"
+                            >
+                                Reintentar Ahora
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -54,17 +77,17 @@ const AppContent: React.FC = () => {
     if (error && isAuthenticated) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
-                <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-rose-100 dark:border-rose-900/30 max-w-sm">
+                <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-rose-100 dark:border-rose-900/30 max-w-sm mx-4">
                     <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <ExclamationTriangleIcon className="w-8 h-8" />
                     </div>
-                    <h2 className="text-lg font-black text-slate-800 dark:text-white">Error de Sincronización</h2>
-                    <p className="text-slate-500 text-xs mt-2 leading-relaxed">{error}</p>
+                    <h2 className="text-lg font-black text-slate-800 dark:text-white">Fallo de Comunicación</h2>
+                    <p className="text-slate-500 text-xs mt-2 leading-relaxed">No pudimos enlazar con los servidores centrales. Verifique su conexión.</p>
                     <button 
                         onClick={() => window.location.reload()}
-                        className="mt-6 w-full py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20"
+                        className="mt-6 w-full py-3.5 bg-rose-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-rose-500/20"
                     >
-                        Reintentar Conexión
+                        Reintentar Enlace
                     </button>
                 </div>
             </div>

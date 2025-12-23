@@ -20,41 +20,30 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
   const fetchUserProfile = async (userId: string, email?: string) => {
     try {
-      // 1. Intento primario: Buscar por ID (UID de Auth)
+      // Intento 1: Por ID de Supabase
       let { data, error }: any = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      // 2. Intento secundario (Fallback): Si no hay por ID, buscar por Email
-      // Esto soluciona problemas de perfiles creados manualmente sin el ID de Auth correcto
+      // Intento 2: Fallback por Email (Crucial para nuevos registros)
       if (!data && email) {
-        const { data: dataByEmail, error: errorEmail } = await supabase
+        const { data: dataByEmail } = await supabase
           .from('profiles')
           .select('*')
           .eq('email', email)
           .maybeSingle();
         
         if (dataByEmail) {
-          console.log("Perfil encontrado por email, sincronizando ID...");
-          // Actualizamos el ID del perfil antiguo para que coincida con el nuevo UID de Auth
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ id: userId })
-            .eq('email', email);
-            
-          if (!updateError) data = { ...dataByEmail, id: userId };
-          else data = dataByEmail;
+          // Sincronizar ID de forma transparente
+          await supabase.from('profiles').update({ id: userId }).eq('email', email);
+          data = { ...dataByEmail, id: userId };
         }
       }
 
-      if (error || !data) {
-        console.error("No se encontró perfil para:", userId, email);
-        return null;
-      }
+      if (!data) return null;
       
-      // Normalización de datos para la aplicación
       return {
           id: data.id,
           name: data.name || 'Usuario',
@@ -66,8 +55,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
           class: data.class,
           section: data.section,
           rollNumber: data.roll_number,
-          schoolPeriod: data.school_period,
-          schoolYear: data.school_year,
+          documentNumber: data.document_number,
+          phone: data.phone,
           financialStatus: data.financial_status,
           history: data.history
       };
@@ -82,75 +71,76 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const profile = await fetchUserProfile(session.user.id, session.user.email);
-        if (profile) {
-            setUser(profile as User);
-        } else {
-            setUser(null);
-        }
+        setUser(profile ? (profile as User) : null);
       } else {
         setUser(null);
       }
     } catch (e) {
-        console.error("Error en refreshSession:", e);
+      console.error("Fallo al refrescar sesión:", e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Seguridad: Timeout de 8 segundos para evitar carga infinita
+    const safetyTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn("Safety timeout activado: Forzando fin de carga.");
+        setLoading(false);
+      }
+    }, 8000);
+
     refreshSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        const profile = await fetchUserProfile(session.user.id, session.user.email);
-        if (profile) setUser(profile as User);
-        setLoading(false);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
+      try {
+        if (session) {
+          const profile = await fetchUserProfile(session.user.id, session.user.email);
+          setUser(profile ? (profile as User) : null);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Error en cambio de estado de Auth:", err);
+      } finally {
         setLoading(false);
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
   }, []);
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
-    if (error) {
-      if (error.message.includes("Invalid login credentials")) {
-        throw new Error("El correo o la contraseña son incorrectos.");
-      }
-      throw error;
-    }
+    if (error) throw new Error("Credenciales inválidas o error de conexión.");
 
     if (data.user) {
-      const profile = await fetchUserProfile(data.user.id, email);
-      
+      const profile = await fetchUserProfile(data.user.id, data.user.email);
       if (!profile) {
-        // Si no hay perfil, cerramos la sesión de Auth inmediatamente para no quedar en limbo
         await supabase.auth.signOut();
-        throw new Error("Su cuenta de usuario no tiene un perfil configurado en la base de datos (Tabla: profiles).");
+        throw new Error("Su perfil no está registrado en la base de datos.");
       }
-      
-      // Verificación de Rol estricta (Case Sensitive check)
       if (profile.role !== role) {
         await supabase.auth.signOut();
-        throw new Error(`Acceso denegado: Su perfil en la base de datos es '${profile.role}' y usted intentó ingresar como '${role}'.`);
+        throw new Error(`Acceso denegado: Usted tiene el rol '${profile.role}'.`);
       }
-      
       setUser(profile as User);
     }
   };
 
   const logout = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
+    setLoading(false);
   };
   
   const sendPasswordReset = async (email: string) => {
@@ -163,7 +153,10 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-400 font-medium animate-pulse text-sm">Validando perfil...</p>
+            <p className="text-slate-400 font-black animate-pulse text-[10px] uppercase tracking-[0.2em] text-center px-4">
+              Sincronizando Identidad Escolar...<br/>
+              <span className="text-[8px] opacity-60">Por favor espere un momento</span>
+            </p>
         </div>
       ) : children}
     </AuthContext.Provider>

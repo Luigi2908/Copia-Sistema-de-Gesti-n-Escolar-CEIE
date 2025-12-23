@@ -113,6 +113,8 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
 
             if (profsRes.status === 'fulfilled' && profsRes.value.data) {
                 const profs = profsRes.value.data;
+                
+                // Normalización de Administradores
                 setAdmins(profs.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
                     id: p.id,
                     name: p.name,
@@ -124,23 +126,39 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                     avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
                 } as AdminUser)));
                 
+                // Normalización de Profesores
                 setTeachers(profs.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
-                    ...p, 
-                    campusId: p.campus_id, 
-                    campusName: p.campus_name, 
-                    documentNumber: p.document_number || p.documentNumber 
-                })));
+                    id: p.id,
+                    name: p.name,
+                    email: p.email,
+                    role: p.role,
+                    campusId: p.campus_id,
+                    campusName: p.campus_name,
+                    documentNumber: p.document_number || p.documentNumber || '',
+                    phone: p.phone || '',
+                    subject: p.subject || '',
+                    status: p.status || 'active',
+                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                } as Teacher)));
 
+                // Normalización de Estudiantes
                 setStudents(profs.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
-                    ...p, 
+                    id: p.id,
+                    name: p.name,
+                    email: p.email,
+                    role: p.role,
                     campusId: p.campus_id, 
-                    campusName: p.campus_name, 
-                    rollNumber: p.roll_number || p.rollNumber, 
-                    schoolPeriod: p.school_period || p.schoolPeriod, 
-                    schoolYear: p.school_year || p.schoolYear, 
-                    financialStatus: p.financial_status || p.financialStatus, 
-                    documentNumber: p.document_number || p.documentNumber 
-                })));
+                    campusName: p.campus_name,
+                    class: p.class || '',
+                    section: p.section || '',
+                    rollNumber: p.roll_number || p.rollNumber || '', 
+                    schoolPeriod: p.school_period || p.schoolPeriod || 'A', 
+                    schoolYear: p.school_year || p.schoolYear || 2025, 
+                    financialStatus: p.financial_status || p.financialStatus || 'Al día', 
+                    documentNumber: p.document_number || p.documentNumber || '',
+                    status: p.status || 'active',
+                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                } as Student)));
             }
 
             if (grdsRes.status === 'fulfilled' && grdsRes.value.data) setGrades(grdsRes.value.data.map(g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code })));
