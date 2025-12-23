@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { 
     Campus, AdminUser, Teacher, Student, Grade, Communication, ClassSchedule, Exam, TeacherCourseAssignment, UserRole, AttendanceRecord, SchoolEvent, AcademicHistory
@@ -93,7 +94,17 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                 supabase.from('attendance').select('*')
             ]);
 
-            setCampuses(camps || []);
+            if (camps) {
+                setCampuses(camps.map(c => ({
+                    id: c.id,
+                    name: c.name || 'Sede sin nombre',
+                    address: c.address || 'Sin dirección',
+                    admin: c.admin || 'Sin asignar',
+                    teachers: c.teachers || 0,
+                    students: c.students || 0
+                })));
+            }
+
             if (profs) {
                 setAdmins(profs.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name })));
                 setTeachers(profs.filter(p => p.role === UserRole.TEACHER).map(p => ({ ...p, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number })));
@@ -118,11 +129,18 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         fetchData();
     }, [isAuthenticated]);
 
-    // Helpers con mapeo de campos a snake_case
     const dbAdd = async (table: string, data: any) => {
-        const mappedData = Object.keys(data).reduce((acc: any, key) => {
+        // Clonamos la data para no modificar el original
+        const dataWithId = { ...data };
+        
+        // Generamos un ID si no existe (solución al error violates not-null constraint)
+        if (!dataWithId.id) {
+            dataWithId.id = crypto.randomUUID();
+        }
+
+        const mappedData = Object.keys(dataWithId).reduce((acc: any, key) => {
             const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-            acc[snakeKey] = data[key];
+            acc[snakeKey] = dataWithId[key];
             return acc;
         }, {});
 
@@ -152,7 +170,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         }
 
         const studentGrades = grades.filter(g => g.studentId === studentId);
-        // Se define explícitamente el tipo de subjects como string[] para evitar inferencias de tipo 'unknown'
         const subjects: string[] = Array.from(new Set(studentGrades.map(g => g.subject)));
         
         if (subjects.length === 0) return { success: false, message: 'Sin notas registradas', type: 'warning' };
