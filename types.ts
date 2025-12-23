@@ -18,6 +18,14 @@ export interface User {
   campusName?: string;
   avatar: string;
   isLocal?: boolean;
+  // Se agregan campos comunes como opcionales para soportar el polimorfismo de perfiles
+  class?: string;
+  section?: string;
+  rollNumber?: string;
+  documentNumber?: string;
+  phone?: string;
+  financialStatus?: FinancialStatus;
+  status?: 'active' | 'inactive';
 }
 
 export interface AdminUser extends User {

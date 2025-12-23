@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import Card from '../ui/Card';
@@ -9,7 +9,7 @@ import Footer from '../layout/Footer';
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>(UserRole.CAMPUS_ADMIN); // Cambiado a Campus Admin por defecto
+  const [role, setRole] = useState<UserRole>(UserRole.CAMPUS_ADMIN);
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +17,18 @@ const LoginPage: React.FC = () => {
   
   const schoolName = 'Sistema de Gestión CEIE';
   const schoolLogo = 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHBsMGdhaWJpamQ0OGxuYm85N2pyZ2F3YWdycjR2Ymtza2s2dzJhYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/m7t3XLkAB0fX7WEFs0/giphy.gif';
+
+  // Liberador de emergencia si el login tarda demasiado
+  useEffect(() => {
+    let timeout: any;
+    if (isLoading) {
+      timeout = setTimeout(() => {
+        setIsLoading(false);
+        setError("La conexión está tardando más de lo normal. Por favor reintente.");
+      }, 12000);
+    }
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +42,9 @@ const LoginPage: React.FC = () => {
     
     try {
         await login(email.trim(), password, role);
+        // Si el login es exitoso, la App redirigirá automáticamente vía AuthContext
     } catch (err: any) {
         setError(err.message);
-    } finally {
         setIsLoading(false);
     }
   };
@@ -70,6 +82,7 @@ const LoginPage: React.FC = () => {
                   className="w-full p-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                   placeholder="admin@ejemplo.com"
                   required
+                  autoComplete="email"
                 />
               </div>
 
@@ -85,6 +98,7 @@ const LoginPage: React.FC = () => {
                   className="w-full p-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white pr-12"
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -142,9 +156,6 @@ const LoginPage: React.FC = () => {
                 <ShieldCheckIcon className="w-4 h-4" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Conexión Segura CEIE</span>
             </div>
-            <p className="text-[10px] text-slate-400 font-medium italic text-center">
-                Asegúrate de seleccionar el rol correcto asignado a tu perfil para evitar errores de acceso.
-            </p>
           </div>
         </div>
       </main>

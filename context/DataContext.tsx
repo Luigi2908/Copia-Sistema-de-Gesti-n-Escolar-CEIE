@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { 
     Campus, AdminUser, Teacher, Student, Grade, Communication, ClassSchedule, Exam, TeacherCourseAssignment, UserRole, AttendanceRecord, SchoolEvent, AcademicHistory
 } from '../types';
@@ -20,7 +20,7 @@ interface DataContextType {
     events: SchoolEvent[];
     isLoading: boolean;
     error: string | null;
-
+    refreshAll: () => Promise<void>;
     addCampus: (data: any) => Promise<void>;
     updateCampus: (id: string, data: any) => Promise<void>;
     deleteCampus: (id: string) => Promise<void>;
@@ -61,7 +61,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children?: ReactNode }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -77,113 +77,62 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const [assignments, setAssignments] = useState<TeacherCourseAssignment[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (!isAuthenticated) return;
-        setIsLoading(true);
+        
+        // No bloqueamos toda la UI con isLoading = true si ya hay datos básicos
+        if (campuses.length === 0) setIsLoading(true);
         setError(null);
         
         try {
-            const results = await Promise.allSettled([
-                supabase.from('campuses').select('*'),
-                supabase.from('profiles').select('*'),
-                supabase.from('grades').select('*'),
-                supabase.from('communications').select('*'),
-                supabase.from('schedules').select('*'),
-                supabase.from('exams').select('*'),
-                supabase.from('school_events').select('*'),
-                supabase.from('teacher_assignments').select('*'),
-                supabase.from('attendance').select('*')
-            ]);
+            // Carga Secuencial e Independiente para evitar bloqueos por tablas vacías o lentas
+            const loadTable = async (table: string, setter: (data: any) => void, mapper: (item: any) => any) => {
+                const { data, error } = await supabase.from(table).select('*');
+                if (!error && data) setter(data.map(mapper));
+            };
 
-            const [
-                campsRes, profsRes, grdsRes, commsRes, 
-                schsRes, exmsRes, evtsRes, asgsRes, attsRes
-            ] = results;
+            // 1. Prioridad: Estructura y Perfiles
+            await loadTable('campuses', setCampuses, c => ({
+                id: c.id, name: c.name, address: c.address, admin: c.admin, teachers: c.teachers || 0, students: c.students || 0
+            }));
 
-            if (campsRes.status === 'fulfilled' && campsRes.value.data) {
-                setCampuses(campsRes.value.data.map(c => ({
-                    id: c.id,
-                    name: c.name || 'Sede sin nombre',
-                    address: c.address || 'Sin dirección',
-                    admin: c.admin || 'Sin asignar',
-                    teachers: c.teachers || 0,
-                    students: c.students || 0
+            const { data: profiles } = await supabase.from('profiles').select('*');
+            if (profiles) {
+                setAdmins(profiles.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
+                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, status: p.status, avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                })));
+                
+                setTeachers(profiles.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
+                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number, phone: p.phone, subject: p.subject, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                })));
+
+                setStudents(profiles.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
+                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
                 })));
             }
 
-            if (profsRes.status === 'fulfilled' && profsRes.value.data) {
-                const profs = profsRes.value.data;
-                
-                // Normalización de Administradores
-                setAdmins(profs.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
-                    id: p.id,
-                    name: p.name,
-                    email: p.email,
-                    role: p.role,
-                    campusId: p.campus_id, 
-                    campusName: p.campus_name,
-                    status: p.status,
-                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                } as AdminUser)));
-                
-                // Normalización de Profesores
-                setTeachers(profs.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
-                    id: p.id,
-                    name: p.name,
-                    email: p.email,
-                    role: p.role,
-                    campusId: p.campus_id,
-                    campusName: p.campus_name,
-                    documentNumber: p.document_number || p.documentNumber || '',
-                    phone: p.phone || '',
-                    subject: p.subject || '',
-                    status: p.status || 'active',
-                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                } as Teacher)));
+            // Una vez cargados los perfiles, liberamos la pantalla de carga para que el Dashboard se vea
+            setIsLoading(false);
 
-                // Normalización de Estudiantes
-                setStudents(profs.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
-                    id: p.id,
-                    name: p.name,
-                    email: p.email,
-                    role: p.role,
-                    campusId: p.campus_id, 
-                    campusName: p.campus_name,
-                    class: p.class || '',
-                    section: p.section || '',
-                    rollNumber: p.roll_number || p.rollNumber || '', 
-                    schoolPeriod: p.school_period || p.schoolPeriod || 'A', 
-                    schoolYear: p.school_year || p.schoolYear || 2025, 
-                    financialStatus: p.financial_status || p.financialStatus || 'Al día', 
-                    documentNumber: p.document_number || p.documentNumber || '',
-                    status: p.status || 'active',
-                    avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                } as Student)));
-            }
-
-            if (grdsRes.status === 'fulfilled' && grdsRes.value.data) setGrades(grdsRes.value.data.map(g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code })));
-            if (commsRes.status === 'fulfilled' && commsRes.value.data) setCommunications(commsRes.value.data.map(c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles })));
-            if (schsRes.status === 'fulfilled' && schsRes.value.data) setSchedules(schsRes.value.data.map(s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time })));
-            if (exmsRes.status === 'fulfilled' && exmsRes.value.data) setExams(exmsRes.value.data.map(e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score })));
-            if (evtsRes.status === 'fulfilled' && evtsRes.value.data) setEvents(evtsRes.value.data.map(e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type })));
-            if (asgsRes.status === 'fulfilled' && asgsRes.value.data) setAssignments(asgsRes.value.data.map(a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria })));
-            if (attsRes.status === 'fulfilled' && attsRes.value.data) setAttendanceRecords(attsRes.value.data.map(a => ({ ...a, studentId: a.student_id })));
+            // 2. Carga en Segundo Plano (Background)
+            loadTable('grades', setGrades, g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code }));
+            loadTable('communications', setCommunications, c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles }));
+            loadTable('schedules', setSchedules, s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time }));
+            loadTable('exams', setExams, e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score }));
+            loadTable('school_events', setEvents, e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type }));
+            loadTable('teacher_assignments', setAssignments, a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria }));
+            loadTable('attendance', setAttendanceRecords, a => ({ ...a, studentId: a.student_id }));
 
         } catch (err: any) {
             console.error("Error cargando datos:", err);
             setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetchData();
-        } else {
             setIsLoading(false);
         }
     }, [isAuthenticated]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const dbAdd = async (table: string, data: any) => {
         const dataWithId = { ...data, id: data.id || crypto.randomUUID() };
@@ -192,7 +141,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             acc[snakeKey] = dataWithId[key];
             return acc;
         }, {});
-
         const { error } = await supabase.from(table).insert([mappedData]);
         if (error) throw error;
         await fetchData();
@@ -204,7 +152,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             acc[snakeKey] = data[key];
             return acc;
         }, {});
-
         const { error } = await supabase.from(table).update(mappedData).eq('id', id);
         if (error) throw error;
         await fetchData();
@@ -226,14 +173,8 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         const gpa = details.reduce((acc, d) => acc + d.finalGrade, 0) / details.length;
         const passed = gpa >= 3.0;
         const newHistory: AcademicHistory = {
-            semester: student.section,
-            year: student.schoolYear,
-            period: student.schoolPeriod,
-            gpa: parseFloat(gpa.toFixed(2)),
-            status: passed ? 'Aprobado' : 'Reprobado',
-            financialStatusAtClosing: student.financialStatus || 'Al día',
-            details,
-            completionDate: new Date().toISOString()
+            semester: student.section, year: student.schoolYear, period: student.schoolPeriod, gpa: parseFloat(gpa.toFixed(2)), status: passed ? 'Aprobado' : 'Reprobado',
+            financialStatusAtClosing: student.financialStatus || 'Al día', details, completionDate: new Date().toISOString()
         };
         const updatedHistory = [...(student.history || []), newHistory];
         const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
@@ -244,6 +185,7 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     return (
         <DataContext.Provider value={{
             isLoading, error, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
+            refreshAll: fetchData,
             addCampus: (d) => dbAdd('campuses', d),
             updateCampus: (id, d) => dbUpdate('campuses', id, d),
             deleteCampus: (id) => supabase.from('campuses').delete().eq('id', id).then(() => fetchData()),
