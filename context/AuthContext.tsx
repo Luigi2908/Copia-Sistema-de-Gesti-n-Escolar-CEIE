@@ -19,7 +19,6 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [intendedRole, setIntendedRole] = useState<UserRole | null>(null);
 
-  // Mapeo centralizado de datos del perfil con soporte para campos opcionales definidos en la interfaz User
   const mapProfileData = (data: any): User => ({
     id: data.id,
     name: data.name || 'Usuario',
@@ -48,7 +47,6 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       if (error) throw error;
 
       if (!data && email) {
-        // Fallback: Buscar por email si el ID no coincide (común en migraciones)
         const { data: dataByEmail } = await supabase
           .from('profiles')
           .select('*')
@@ -69,41 +67,42 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     }
   };
 
-  // Se extrae initializeAuth para ser accesible en el Provider
   const initializeAuth = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        // Establecemos carga en false apenas confirmamos sesión básica
+        setLoading(false); 
         const profile = await fetchUserProfile(session.user.id, session.user.email);
-        setUser(profile);
+        if (profile) setUser(profile);
+      } else {
+        setUser(null);
+        setLoading(false);
       }
     } catch (e) {
       console.error("Error inicializando auth:", e);
-    } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // Control de carga global: Máximo 12 segundos para todo el proceso de Auth
+    // Seguridad máxima: Timeout de 25s
     const globalAuthTimeout = setTimeout(() => {
       if (loading) {
-        console.warn("Auth Timeout: Forzando visualización de App");
+        console.warn("Auth Timeout crítico: Forzando liberación de UI");
         setLoading(false);
       }
-    }, 12000);
+    }, 25000);
 
-    // Inicialización del estado de autenticación
-    initializeAuth().then(() => {
-        clearTimeout(globalAuthTimeout);
-    });
+    initializeAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session) {
+          // Si iniciamos sesión, liberamos el loading lo antes posible
+          setLoading(false); 
           const profile = await fetchUserProfile(session.user.id, session.user.email);
           if (profile) {
-            // Validación de rol estricta solo si hay un rol intencionado (Login manual)
             if (intendedRole && profile.role !== intendedRole) {
               await supabase.auth.signOut();
               setUser(null);
@@ -115,8 +114,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIntendedRole(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {
@@ -152,8 +151,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, sendPasswordReset, refreshSession: initializeAuth }}>
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest animate-pulse">Iniciando Ecosistema...</p>
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6"></div>
+            <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] animate-pulse">Sincronizando Identidad Escolar</p>
         </div>
       ) : children}
     </AuthContext.Provider>

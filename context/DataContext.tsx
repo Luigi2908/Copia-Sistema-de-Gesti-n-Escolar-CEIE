@@ -80,41 +80,42 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const fetchData = useCallback(async () => {
         if (!isAuthenticated) return;
         
-        // No bloqueamos toda la UI con isLoading = true si ya hay datos básicos
+        // Solo bloqueamos si no hay datos básicos (sedes)
         if (campuses.length === 0) setIsLoading(true);
         setError(null);
         
         try {
-            // Carga Secuencial e Independiente para evitar bloqueos por tablas vacías o lentas
             const loadTable = async (table: string, setter: (data: any) => void, mapper: (item: any) => any) => {
                 const { data, error } = await supabase.from(table).select('*');
                 if (!error && data) setter(data.map(mapper));
+                return !error;
             };
 
-            // 1. Prioridad: Estructura y Perfiles
-            await loadTable('campuses', setCampuses, c => ({
-                id: c.id, name: c.name, address: c.address, admin: c.admin, teachers: c.teachers || 0, students: c.students || 0
-            }));
+            // FASE 1: Datos de Estructura Crítica (Rápido)
+            await Promise.allSettled([
+                loadTable('campuses', setCampuses, c => ({
+                    id: c.id, name: c.name, address: c.address, admin: c.admin, teachers: c.teachers || 0, students: c.students || 0
+                })),
+                supabase.from('profiles').select('*').then(({ data }) => {
+                    if (data) {
+                        setAdmins(data.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
+                            id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, status: p.status, avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                        })));
+                        setTeachers(data.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
+                            id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number, phone: p.phone, subject: p.subject, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                        })));
+                        setStudents(data.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
+                            id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                        })));
+                    }
+                })
+            ]);
 
-            const { data: profiles } = await supabase.from('profiles').select('*');
-            if (profiles) {
-                setAdmins(profiles.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
-                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, status: p.status, avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                })));
-                
-                setTeachers(profiles.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
-                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number, phone: p.phone, subject: p.subject, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                })));
-
-                setStudents(profiles.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
-                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                })));
-            }
-
-            // Una vez cargados los perfiles, liberamos la pantalla de carga para que el Dashboard se vea
+            // Liberamos la UI apenas tenemos la estructura básica
             setIsLoading(false);
 
-            // 2. Carga en Segundo Plano (Background)
+            // FASE 2: Datos Académicos y Segundo Plano (Background)
+            // No usamos await aquí para que no bloqueen la transición inicial
             loadTable('grades', setGrades, g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code }));
             loadTable('communications', setCommunications, c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles }));
             loadTable('schedules', setSchedules, s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time }));
@@ -125,8 +126,7 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
 
         } catch (err: any) {
             console.error("Error cargando datos:", err);
-            setError(err.message);
-            setIsLoading(false);
+            setIsLoading(false); // Siempre liberar carga ante errores
         }
     }, [isAuthenticated]);
 

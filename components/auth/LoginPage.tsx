@@ -18,14 +18,14 @@ const LoginPage: React.FC = () => {
   const schoolName = 'Sistema de Gestión CEIE';
   const schoolLogo = 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHBsMGdhaWJpamQ0OGxuYm85N2pyZ2F3YWdycjR2Ymtza2s2dzJhYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/m7t3XLkAB0fX7WEFs0/giphy.gif';
 
-  // Liberador de emergencia si el login tarda demasiado
+  // Liberador de emergencia con tiempo extendido (30 segundos)
   useEffect(() => {
     let timeout: any;
     if (isLoading) {
       timeout = setTimeout(() => {
         setIsLoading(false);
-        setError("La conexión está tardando más de lo normal. Por favor reintente.");
-      }, 12000);
+        setError("La respuesta del servidor es lenta. Verifique su conexión e intente de nuevo.");
+      }, 30000); // 30 segundos para redes inestables
     }
     return () => clearTimeout(timeout);
   }, [isLoading]);
@@ -42,10 +42,15 @@ const LoginPage: React.FC = () => {
     
     try {
         await login(email.trim(), password, role);
-        // Si el login es exitoso, la App redirigirá automáticamente vía AuthContext
+        // El redireccionamiento ocurre vía AuthContext -> onAuthStateChange
     } catch (err: any) {
-        setError(err.message);
         setIsLoading(false);
+        if (err.message?.includes('Invalid login credentials') || err.code === 'invalid_credentials') {
+          setError('Correo o contraseña incorrectos.');
+        } else {
+          setError('Error de conexión. Intente nuevamente en unos segundos.');
+        }
+        console.error("Login Error:", err);
     }
   };
   
@@ -80,7 +85,7 @@ const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full p-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none dark:bg-slate-800 dark:border-slate-700 dark:text-white"
-                  placeholder="admin@ejemplo.com"
+                  placeholder="usuario@ejemplo.com"
                   required
                   autoComplete="email"
                 />
@@ -135,7 +140,7 @@ const LoginPage: React.FC = () => {
                 className="w-full bg-primary text-white font-black py-4 rounded-2xl shadow-xl shadow-primary/20 hover:bg-blue-700 hover:shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-50 text-sm uppercase tracking-widest mt-2"
                 type="submit"
               >
-                {isLoading ? 'Iniciando sesión...' : 'Entrar al Sistema'}
+                {isLoading ? 'Conectando...' : 'Entrar al Sistema'}
               </button>
             </form>
 
