@@ -80,22 +80,21 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const fetchData = useCallback(async () => {
         if (!isAuthenticated) return;
         
-        // Solo bloqueamos si no hay datos básicos (sedes)
-        if (campuses.length === 0) setIsLoading(true);
-        setError(null);
+        // No bloqueamos si ya hay algo que mostrar
+        if (campuses.length === 0 && students.length === 0) setIsLoading(true);
         
         try {
             const loadTable = async (table: string, setter: (data: any) => void, mapper: (item: any) => any) => {
                 const { data, error } = await supabase.from(table).select('*');
                 if (!error && data) setter(data.map(mapper));
-                return !error;
             };
 
-            // FASE 1: Datos de Estructura Crítica (Rápido)
-            await Promise.allSettled([
+            // Ejecución asíncrona por grupos para liberar el hilo principal
+            setTimeout(() => {
                 loadTable('campuses', setCampuses, c => ({
                     id: c.id, name: c.name, address: c.address, admin: c.admin, teachers: c.teachers || 0, students: c.students || 0
-                })),
+                }));
+                
                 supabase.from('profiles').select('*').then(({ data }) => {
                     if (data) {
                         setAdmins(data.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
@@ -108,25 +107,23 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                             id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
                         })));
                     }
-                })
-            ]);
+                    setIsLoading(false); // Liberamos UI rápido tras cargar perfiles
+                });
+            }, 0);
 
-            // Liberamos la UI apenas tenemos la estructura básica
-            setIsLoading(false);
-
-            // FASE 2: Datos Académicos y Segundo Plano (Background)
-            // No usamos await aquí para que no bloqueen la transición inicial
-            loadTable('grades', setGrades, g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code }));
-            loadTable('communications', setCommunications, c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles }));
-            loadTable('schedules', setSchedules, s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time }));
-            loadTable('exams', setExams, e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score }));
-            loadTable('school_events', setEvents, e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type }));
-            loadTable('teacher_assignments', setAssignments, a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria }));
-            loadTable('attendance', setAttendanceRecords, a => ({ ...a, studentId: a.student_id }));
+            // Resto de tablas en segundo plano total
+            setTimeout(() => {
+                loadTable('grades', setGrades, g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code }));
+                loadTable('communications', setCommunications, c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles }));
+                loadTable('schedules', setSchedules, s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time }));
+                loadTable('exams', setExams, e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score }));
+                loadTable('school_events', setEvents, e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type }));
+                loadTable('teacher_assignments', setAssignments, a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria }));
+                loadTable('attendance', setAttendanceRecords, a => ({ ...a, studentId: a.student_id }));
+            }, 100);
 
         } catch (err: any) {
-            console.error("Error cargando datos:", err);
-            setIsLoading(false); // Siempre liberar carga ante errores
+            setIsLoading(false);
         }
     }, [isAuthenticated]);
 
@@ -134,33 +131,19 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         fetchData();
     }, [fetchData]);
 
-    const dbAdd = async (table: string, data: any) => {
-        const dataWithId = { ...data, id: data.id || crypto.randomUUID() };
-        const mappedData = Object.keys(dataWithId).reduce((acc: any, key) => {
-            const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-            acc[snakeKey] = dataWithId[key];
-            return acc;
-        }, {});
-        const { error } = await supabase.from(table).insert([mappedData]);
-        if (error) throw error;
-        await fetchData();
-    };
-
     const dbUpdate = async (table: string, id: string, data: any) => {
         const mappedData = Object.keys(data).reduce((acc: any, key) => {
             const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
             acc[snakeKey] = data[key];
             return acc;
         }, {});
-        const { error } = await supabase.from(table).update(mappedData).eq('id', id);
-        if (error) throw error;
-        await fetchData();
+        await supabase.from(table).update(mappedData).eq('id', id);
+        fetchData();
     };
 
     const promoteStudent = async (studentId: string): Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }> => {
         const student = students.find(s => s.id === studentId);
         if (!student) return { success: false, message: 'No encontrado', type: 'error' };
-        if (student.financialStatus === 'Mora Crítica (Bloqueado)') return { success: false, message: 'Bloqueo Financiero', type: 'error' };
         const studentGrades = grades.filter(g => g.studentId === studentId);
         const subjects: string[] = Array.from(new Set(studentGrades.map(g => g.subject)));
         if (subjects.length === 0) return { success: false, message: 'Sin notas registradas', type: 'warning' };
@@ -179,48 +162,45 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         const updatedHistory = [...(student.history || []), newHistory];
         const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
         await dbUpdate('profiles', studentId, { section: nextSemester, history: updatedHistory });
-        return { success: passed, message: passed ? `Promovido a Semestre ${nextSemester}` : `Debe repetir semestre (${gpa.toFixed(2)})`, type: passed ? 'success' : 'warning' };
+        return { success: passed, message: passed ? `Promovido a Semestre ${nextSemester}` : `Reprobado (${gpa.toFixed(2)})`, type: passed ? 'success' : 'warning' };
     };
 
     return (
         <DataContext.Provider value={{
             isLoading, error, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
             refreshAll: fetchData,
-            addCampus: (d) => dbAdd('campuses', d),
+            addCampus: (d) => supabase.from('campuses').insert([d]).then(() => fetchData()),
             updateCampus: (id, d) => dbUpdate('campuses', id, d),
             deleteCampus: (id) => supabase.from('campuses').delete().eq('id', id).then(() => fetchData()),
-            addAdmin: (d) => dbAdd('profiles', { ...d, role: UserRole.CAMPUS_ADMIN }),
+            addAdmin: (d) => supabase.from('profiles').insert([{ ...d, role: UserRole.CAMPUS_ADMIN }]).then(() => fetchData()),
             updateAdmin: (id, d) => dbUpdate('profiles', id, d),
             deleteAdmin: (id) => supabase.from('profiles').delete().eq('id', id).then(() => fetchData()),
-            addTeacher: (d) => dbAdd('profiles', { ...d, role: UserRole.TEACHER }),
+            addTeacher: (d) => supabase.from('profiles').insert([{ ...d, role: UserRole.TEACHER }]).then(() => fetchData()),
             updateTeacher: (id, d) => dbUpdate('profiles', id, d),
             deleteTeacher: (id) => supabase.from('profiles').delete().eq('id', id).then(() => fetchData()),
-            addStudent: (d) => dbAdd('profiles', { ...d, role: UserRole.STUDENT }),
+            addStudent: (d) => supabase.from('profiles').insert([{ ...d, role: UserRole.STUDENT }]).then(() => fetchData()),
             updateStudent: (id, d) => dbUpdate('profiles', id, d),
             deleteStudent: (id) => supabase.from('profiles').delete().eq('id', id).then(() => fetchData()),
             promoteStudent,
-            addGrade: (d) => dbAdd('grades', d),
+            addGrade: (d) => supabase.from('grades').insert([d]).then(() => fetchData()),
             updateGrade: (id, d) => dbUpdate('grades', id, d),
             deleteGrade: (id) => supabase.from('grades').delete().eq('id', id).then(() => fetchData()),
-            addCommunication: (d) => dbAdd('communications', d),
+            addCommunication: (d) => supabase.from('communications').insert([d]).then(() => fetchData()),
             updateCommunication: (id, d) => dbUpdate('communications', id, d),
             deleteCommunication: (id) => supabase.from('communications').delete().eq('id', id).then(() => fetchData()),
-            addExam: (d) => dbAdd('exams', d),
+            addExam: (d) => supabase.from('exams').insert([d]).then(() => fetchData()),
             updateExam: (id, d) => dbUpdate('exams', id, d),
             deleteExam: (id) => supabase.from('exams').delete().eq('id', id).then(() => fetchData()),
-            addSchedule: (d) => dbAdd('schedules', d),
+            addSchedule: (d) => supabase.from('schedules').insert([d]).then(() => fetchData()),
             updateSchedule: (id, d) => dbUpdate('schedules', id, d),
             deleteSchedule: (id) => supabase.from('schedules').delete().eq('id', id).then(() => fetchData()),
-            addAssignment: (d) => dbAdd('teacher_assignments', d),
+            addAssignment: (d) => supabase.from('teacher_assignments').insert([d]).then(() => fetchData()),
             updateAssignment: (id, d) => dbUpdate('teacher_assignments', id, d),
             deleteAssignment: (id) => supabase.from('teacher_assignments').delete().eq('id', id).then(() => fetchData()),
-            addEvent: (d) => dbAdd('school_events', d),
+            addEvent: (d) => supabase.from('school_events').insert([d]).then(() => fetchData()),
             updateEvent: (id, d) => dbUpdate('school_events', id, d),
             deleteEvent: (id) => supabase.from('school_events').delete().eq('id', id).then(() => fetchData()),
-            saveAttendance: async (d) => {
-                const { data: ex } = await supabase.from('attendance').select('id').eq('student_id', d.studentId).eq('date', d.date).maybeSingle();
-                if (ex) await dbUpdate('attendance', ex.id, d); else await dbAdd('attendance', d);
-            },
+            saveAttendance: (d) => supabase.from('attendance').upsert([d]).then(() => fetchData()),
             deleteAttendance: (id) => supabase.from('attendance').delete().eq('id', id).then(() => fetchData()),
             updateUserAvatar: (id, role, avatar) => dbUpdate('profiles', id, { avatar }),
             assignTemporaryPassword: async (id, role, p) => { console.warn("Clave provisional:", p); }

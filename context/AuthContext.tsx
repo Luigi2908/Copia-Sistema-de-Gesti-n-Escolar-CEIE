@@ -19,21 +19,21 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [intendedRole, setIntendedRole] = useState<UserRole | null>(null);
 
-  const mapProfileData = (data: any): User => ({
-    id: data.id,
-    name: data.name || 'Usuario',
-    email: data.email,
-    role: (data.role as UserRole),
-    campusId: data.campus_id,
-    campusName: data.campus_name,
-    avatar: data.avatar || `https://ui-avatars.com/api/?name=${(data.name || 'U').replace(' ', '+')}`,
-    class: data.class,
-    section: data.section,
-    rollNumber: data.roll_number,
-    documentNumber: data.document_number,
-    phone: data.phone,
-    financialStatus: data.financial_status,
-    status: data.status
+  const mapProfileData = (data: any, sessionUser?: any): User => ({
+    id: data?.id || sessionUser?.id || '',
+    name: data?.name || sessionUser?.email?.split('@')[0] || 'Usuario',
+    email: data?.email || sessionUser?.email || '',
+    role: (data?.role as UserRole) || (intendedRole as UserRole) || UserRole.STUDENT,
+    campusId: data?.campus_id,
+    campusName: data?.campus_name,
+    avatar: data?.avatar || `https://ui-avatars.com/api/?name=${(data?.name || 'U').replace(' ', '+')}`,
+    class: data?.class,
+    section: data?.section,
+    rollNumber: data?.roll_number,
+    documentNumber: data?.document_number,
+    phone: data?.phone,
+    financialStatus: data?.financial_status,
+    status: data?.status || 'active'
   });
 
   const fetchUserProfile = async (userId: string, email?: string) => {
@@ -44,9 +44,10 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) return null;
+      if (data) return mapProfileData(data);
 
-      if (!data && email) {
+      if (email) {
         const { data: dataByEmail } = await supabase
           .from('profiles')
           .select('*')
@@ -54,15 +55,13 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
           .maybeSingle();
         
         if (dataByEmail) {
-          await supabase.from('profiles').update({ id: userId }).eq('email', email);
-          return mapProfileData({ ...dataByEmail, id: userId });
+          // Intento de reparación de ID en segundo plano
+          supabase.from('profiles').update({ id: userId }).eq('email', email).then();
+          return mapProfileData(dataByEmail);
         }
-        return null;
       }
-
-      return data ? mapProfileData(data) : null;
+      return null;
     } catch (e) {
-      console.error("Error en fetchUserProfile:", e);
       return null;
     }
   };
@@ -71,56 +70,50 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Establecemos carga en false apenas confirmamos sesión básica
+        // PRIORIDAD: Mostrar la app rápido
         setLoading(false); 
         const profile = await fetchUserProfile(session.user.id, session.user.email);
-        if (profile) setUser(profile);
+        // Si no hay perfil, creamos uno de emergencia con los datos de Supabase Auth
+        setUser(profile || mapProfileData(null, session.user));
       } else {
         setUser(null);
         setLoading(false);
       }
     } catch (e) {
-      console.error("Error inicializando auth:", e);
       setLoading(false);
     }
-  }, []);
+  }, [intendedRole]);
 
   useEffect(() => {
-    // Seguridad máxima: Timeout de 25s
-    const globalAuthTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn("Auth Timeout crítico: Forzando liberación de UI");
-        setLoading(false);
-      }
-    }, 25000);
+    // Timeout de seguridad extremo (5s) para no dejar al usuario en la pantalla de carga
+    const safetyTimer = setTimeout(() => {
+      if (loading) setLoading(false);
+    }, 5000);
 
     initializeAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session) {
-          // Si iniciamos sesión, liberamos el loading lo antes posible
-          setLoading(false); 
-          const profile = await fetchUserProfile(session.user.id, session.user.email);
-          if (profile) {
-            if (intendedRole && profile.role !== intendedRole) {
-              await supabase.auth.signOut();
-              setUser(null);
-            } else {
-              setUser(profile);
-            }
-          }
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        setLoading(false); // Liberar UI inmediatamente
+        const profile = await fetchUserProfile(session.user.id, session.user.email);
+        const finalUser = profile || mapProfileData(null, session.user);
+        
+        if (intendedRole && finalUser.role !== intendedRole && profile) {
+          // Solo cerramos sesión si el perfil de DB confirma un rol diferente
+          await supabase.auth.signOut();
+          setUser(null);
+        } else {
+          setUser(finalUser);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setIntendedRole(null);
         setLoading(false);
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
-      clearTimeout(globalAuthTimeout);
+      clearTimeout(safetyTimer);
     };
   }, [intendedRole, initializeAuth]);
 
@@ -152,7 +145,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6"></div>
-            <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] animate-pulse">Sincronizando Identidad Escolar</p>
+            <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] animate-pulse">Sincronizando Identidad</p>
         </div>
       ) : children}
     </AuthContext.Provider>

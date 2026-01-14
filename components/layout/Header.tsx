@@ -229,8 +229,8 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const [hasUnread, setHasUnread] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  const [schoolName, setSchoolName] = useState('Gestión Escolar');
-  const [schoolLogo, setSchoolLogo] = useState<string>('');
+  const [schoolName, setSchoolName] = useState('Sistema de Gestión CEIE');
+  const [schoolLogo, setSchoolLogo] = useState<string>('https://i.ibb.co/3ym3z0g/Captura-de-pantalla-2025-03-09-174823.png');
 
   useEffect(() => {
         const loadBranding = () => {

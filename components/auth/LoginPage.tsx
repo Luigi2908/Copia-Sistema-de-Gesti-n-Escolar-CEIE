@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import Card from '../ui/Card';
@@ -16,19 +16,7 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   
   const schoolName = 'Sistema de Gestión CEIE';
-  const schoolLogo = 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHBsMGdhaWJpamQ0OGxuYm85N2pyZ2F3YWdycjR2Ymtza2s2dzJhYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/m7t3XLkAB0fX7WEFs0/giphy.gif';
-
-  // Liberador de emergencia con tiempo extendido (30 segundos)
-  useEffect(() => {
-    let timeout: any;
-    if (isLoading) {
-      timeout = setTimeout(() => {
-        setIsLoading(false);
-        setError("La respuesta del servidor es lenta. Verifique su conexión e intente de nuevo.");
-      }, 30000); // 30 segundos para redes inestables
-    }
-    return () => clearTimeout(timeout);
-  }, [isLoading]);
+  const schoolLogo = 'https://i.ibb.co/3ym3z0g/Captura-de-pantalla-2025-03-09-174823.png';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,13 +30,12 @@ const LoginPage: React.FC = () => {
     
     try {
         await login(email.trim(), password, role);
-        // El redireccionamiento ocurre vía AuthContext -> onAuthStateChange
     } catch (err: any) {
         setIsLoading(false);
         if (err.message?.includes('Invalid login credentials') || err.code === 'invalid_credentials') {
           setError('Correo o contraseña incorrectos.');
         } else {
-          setError('Error de conexión. Intente nuevamente en unos segundos.');
+          setError('No pudimos conectar con el servidor. Revise su internet.');
         }
         console.error("Login Error:", err);
     }

@@ -37,8 +37,8 @@ const bimonthlyPeriods = [
 ];
 
 const defaultSettings: GlobalSettings = {
-    schoolName: 'Sistema de Gestión Superior',
-    schoolLogo: 'https://media.giphy.com/media/cG2vQVd3MHIlmXlI99/giphy.gif',
+    schoolName: 'Sistema de Gestión CEIE',
+    schoolLogo: 'https://i.ibb.co/3ym3z0g/Captura-de-pantalla-2025-03-09-174823.png',
     rector: 'Dr. Roberto Mendoza',
     secretary: 'Dra. Patricia Arango',
     address: 'Av. Universidad #45-12',

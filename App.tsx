@@ -43,7 +43,8 @@ const AppContent: React.FC = () => {
     useEffect(() => {
         let timer: any;
         if (isLoading && isAuthenticated) {
-            timer = setTimeout(() => setShowForceButton(true), 6000);
+            // Mostrar botón de reintento muy pronto (3s) para dar control
+            timer = setTimeout(() => setShowForceButton(true), 3000);
         } else {
             setShowForceButton(false);
         }
@@ -55,12 +56,11 @@ const AppContent: React.FC = () => {
             <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
                 <div className="text-center p-10 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 max-w-sm w-full mx-4">
                     <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <h2 className="mt-8 text-xl font-black text-slate-800 dark:text-white">Sincronizando Datos</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">Estamos preparando su entorno académico personalizado.</p>
+                    <h2 className="mt-8 text-xl font-black text-slate-800 dark:text-white">Sincronizando</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">Cargando entorno académico...</p>
                     
                     {showForceButton && (
                         <div className="mt-8 animate-fade-in">
-                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest mb-4">¿La conexión está lenta?</p>
                             <button 
                                 onClick={() => window.location.reload()}
                                 className="w-full py-3.5 bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all shadow-lg"
@@ -82,7 +82,7 @@ const AppContent: React.FC = () => {
                         <ExclamationTriangleIcon className="w-8 h-8" />
                     </div>
                     <h2 className="text-lg font-black text-slate-800 dark:text-white">Fallo de Comunicación</h2>
-                    <p className="text-slate-500 text-xs mt-2 leading-relaxed">No pudimos enlazar con los servidores centrales. Verifique su conexión.</p>
+                    <p className="text-slate-500 text-xs mt-2 leading-relaxed">No pudimos enlazar con los servidores. Verifique su conexión.</p>
                     <button 
                         onClick={() => window.location.reload()}
                         className="mt-6 w-full py-3.5 bg-rose-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-rose-500/20"
@@ -94,7 +94,6 @@ const AppContent: React.FC = () => {
         );
     }
 
-    // Mantenimiento
     const globalSettingsRaw = localStorage.getItem('school_global_settings');
     const isMaintenance = globalSettingsRaw ? JSON.parse(globalSettingsRaw).maintenanceMode : false;
     const isRestrictedUser = user && ![UserRole.SUPER_ADMIN, UserRole.CAMPUS_ADMIN].includes(user.role);
