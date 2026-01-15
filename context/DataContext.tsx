@@ -80,7 +80,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const fetchData = useCallback(async () => {
         if (!isAuthenticated) return;
         
-        // No bloqueamos si ya hay algo que mostrar
         if (campuses.length === 0 && students.length === 0) setIsLoading(true);
         
         try {
@@ -89,7 +88,6 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                 if (!error && data) setter(data.map(mapper));
             };
 
-            // Ejecución asíncrona por grupos para liberar el hilo principal
             setTimeout(() => {
                 loadTable('campuses', setCampuses, c => ({
                     id: c.id, name: c.name, address: c.address, admin: c.admin, teachers: c.teachers || 0, students: c.students || 0
@@ -107,11 +105,10 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                             id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
                         })));
                     }
-                    setIsLoading(false); // Liberamos UI rápido tras cargar perfiles
+                    setIsLoading(false);
                 });
             }, 0);
 
-            // Resto de tablas en segundo plano total
             setTimeout(() => {
                 loadTable('grades', setGrades, g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code }));
                 loadTable('communications', setCommunications, c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles }));
@@ -131,14 +128,28 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         fetchData();
     }, [fetchData]);
 
+    // Función auxiliar para mapear datos a snake_case y manejar actualizaciones
     const dbUpdate = async (table: string, id: string, data: any) => {
         const mappedData = Object.keys(data).reduce((acc: any, key) => {
             const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
             acc[snakeKey] = data[key];
             return acc;
         }, {});
-        await supabase.from(table).update(mappedData).eq('id', id);
-        fetchData();
+        const { error } = await supabase.from(table).update(mappedData).eq('id', id);
+        if (error) throw error;
+        await fetchData();
+    };
+
+    // Función auxiliar para inserciones
+    const dbInsert = async (table: string, data: any) => {
+        const mappedData = Object.keys(data).reduce((acc: any, key) => {
+            const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+            acc[snakeKey] = data[key];
+            return acc;
+        }, {});
+        const { error } = await supabase.from(table).insert([mappedData]);
+        if (error) throw error;
+        await fetchData();
     };
 
     const promoteStudent = async (studentId: string): Promise<{ success: boolean; message: string; type?: 'error' | 'warning' | 'success' }> => {
@@ -161,47 +172,52 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         };
         const updatedHistory = [...(student.history || []), newHistory];
         const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
-        await dbUpdate('profiles', studentId, { section: nextSemester, history: updatedHistory });
-        return { success: passed, message: passed ? `Promovido a Semestre ${nextSemester}` : `Reprobado (${gpa.toFixed(2)})`, type: passed ? 'success' : 'warning' };
+        
+        try {
+            await dbUpdate('profiles', studentId, { section: nextSemester, history: updatedHistory });
+            return { success: passed, message: passed ? `Promovido a Semestre ${nextSemester}` : `Reprobado (${gpa.toFixed(2)})`, type: passed ? 'success' : 'warning' };
+        } catch (e: any) {
+            return { success: false, message: e.message, type: 'error' };
+        }
     };
 
     return (
         <DataContext.Provider value={{
             isLoading, error, campuses, admins, teachers, students, grades, communications, schedules, exams, events, assignments, attendanceRecords,
             refreshAll: fetchData,
-            addCampus: (d) => supabase.from('campuses').insert([d]).then(() => fetchData()),
+            addCampus: (d) => dbInsert('campuses', d),
             updateCampus: (id, d) => dbUpdate('campuses', id, d),
-            deleteCampus: (id) => supabase.from('campuses').delete().eq('id', id).then(() => fetchData()),
-            addAdmin: (d) => supabase.from('profiles').insert([{ ...d, role: UserRole.CAMPUS_ADMIN }]).then(() => fetchData()),
+            deleteCampus: (id) => supabase.from('campuses').delete().eq('id', id).then(fetchData),
+            addAdmin: (d) => dbInsert('profiles', { ...d, role: UserRole.CAMPUS_ADMIN }),
             updateAdmin: (id, d) => dbUpdate('profiles', id, d),
-            deleteAdmin: (id) => supabase.from('profiles').delete().eq('id', id).then(() => fetchData()),
-            addTeacher: (d) => supabase.from('profiles').insert([{ ...d, role: UserRole.TEACHER }]).then(() => fetchData()),
+            deleteAdmin: (id) => supabase.from('profiles').delete().eq('id', id).then(fetchData),
+            addTeacher: (d) => dbInsert('profiles', { ...d, role: UserRole.TEACHER }),
             updateTeacher: (id, d) => dbUpdate('profiles', id, d),
-            deleteTeacher: (id) => supabase.from('profiles').delete().eq('id', id).then(() => fetchData()),
-            addStudent: (d) => supabase.from('profiles').insert([{ ...d, role: UserRole.STUDENT }]).then(() => fetchData()),
+            deleteTeacher: (id) => supabase.from('profiles').delete().eq('id', id).then(fetchData),
+            addStudent: (d) => dbInsert('profiles', { ...d, role: UserRole.STUDENT }),
             updateStudent: (id, d) => dbUpdate('profiles', id, d),
-            deleteStudent: (id) => supabase.from('profiles').delete().eq('id', id).then(() => fetchData()),
+            deleteStudent: (id) => supabase.from('profiles').delete().eq('id', id).then(fetchData),
             promoteStudent,
-            addGrade: (d) => supabase.from('grades').insert([d]).then(() => fetchData()),
+            addGrade: (d) => dbInsert('grades', d),
             updateGrade: (id, d) => dbUpdate('grades', id, d),
-            deleteGrade: (id) => supabase.from('grades').delete().eq('id', id).then(() => fetchData()),
-            addCommunication: (d) => supabase.from('communications').insert([d]).then(() => fetchData()),
+            deleteGrade: (id) => supabase.from('grades').delete().eq('id', id).then(fetchData),
+            addCommunication: (d) => dbInsert('communications', d),
             updateCommunication: (id, d) => dbUpdate('communications', id, d),
-            deleteCommunication: (id) => supabase.from('communications').delete().eq('id', id).then(() => fetchData()),
-            addExam: (d) => supabase.from('exams').insert([d]).then(() => fetchData()),
+            deleteCommunication: (id) => supabase.from('communications').delete().eq('id', id).then(fetchData),
+            addExam: (d) => dbInsert('exams', d),
             updateExam: (id, d) => dbUpdate('exams', id, d),
-            deleteExam: (id) => supabase.from('exams').delete().eq('id', id).then(() => fetchData()),
-            addSchedule: (d) => supabase.from('schedules').insert([d]).then(() => fetchData()),
+            deleteExam: (id) => supabase.from('exams').delete().eq('id', id).then(fetchData),
+            addSchedule: (d) => dbInsert('schedules', d),
             updateSchedule: (id, d) => dbUpdate('schedules', id, d),
-            deleteSchedule: (id) => supabase.from('schedules').delete().eq('id', id).then(() => fetchData()),
-            addAssignment: (d) => supabase.from('teacher_assignments').insert([d]).then(() => fetchData()),
+            deleteSchedule: (id) => supabase.from('schedules').delete().eq('id', id).then(fetchData),
+            addAssignment: (d) => dbInsert('teacher_assignments', d),
             updateAssignment: (id, d) => dbUpdate('teacher_assignments', id, d),
-            deleteAssignment: (id) => supabase.from('teacher_assignments').delete().eq('id', id).then(() => fetchData()),
-            addEvent: (d) => supabase.from('school_events').insert([d]).then(() => fetchData()),
+            deleteAssignment: (id) => supabase.from('teacher_assignments').delete().eq('id', id).then(fetchData),
+            addEvent: (d) => dbInsert('school_events', d),
             updateEvent: (id, d) => dbUpdate('school_events', id, d),
-            deleteEvent: (id) => supabase.from('school_events').delete().eq('id', id).then(() => fetchData()),
-            saveAttendance: (d) => supabase.from('attendance').upsert([d]).then(() => fetchData()),
-            deleteAttendance: (id) => supabase.from('attendance').delete().eq('id', id).then(() => fetchData()),
+            deleteEvent: (id) => supabase.from('school_events').delete().eq('id', id).then(fetchData),
+            saveAttendance: (d) => supabase.from('attendance').upsert([d]).then(fetchData),
+            deleteAttendance: (id) => supabase.from('attendance').delete().eq('id', id).then(fetchData),
             updateUserAvatar: (id, role, avatar) => dbUpdate('profiles', id, { avatar }),
             assignTemporaryPassword: async (id, role, p) => { console.warn("Clave provisional:", p); }
         }}>
