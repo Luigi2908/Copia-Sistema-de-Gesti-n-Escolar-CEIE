@@ -78,48 +78,76 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
     const fetchData = useCallback(async () => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated) {
+            // Limpiar datos al cerrar sesión para evitar inconsistencias
+            setCampuses([]);
+            setAdmins([]);
+            setTeachers([]);
+            setStudents([]);
+            return;
+        }
         
-        if (campuses.length === 0 && students.length === 0) setIsLoading(true);
+        setIsLoading(true);
+        setError(null);
         
         try {
-            const loadTable = async (table: string, setter: (data: any) => void, mapper: (item: any) => any) => {
-                const { data, error } = await supabase.from(table).select('*');
-                if (!error && data) setter(data.map(mapper));
-            };
-
-            setTimeout(() => {
-                loadTable('campuses', setCampuses, c => ({
+            // Cargar Campuses primero
+            const { data: campusesData, error: campusesError } = await supabase.from('campuses').select('*');
+            if (campusesError) throw campusesError;
+            
+            if (campusesData) {
+                setCampuses(campusesData.map(c => ({
                     id: c.id, name: c.name, address: c.address, admin: c.admin, teachers: c.teachers || 0, students: c.students || 0
-                }));
-                
-                supabase.from('profiles').select('*').then(({ data }) => {
-                    if (data) {
-                        setAdmins(data.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
-                            id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, status: p.status, avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                        })));
-                        setTeachers(data.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
-                            id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number, phone: p.phone, subject: p.subject, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                        })));
-                        setStudents(data.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
-                            id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                        })));
-                    }
-                    setIsLoading(false);
-                });
-            }, 0);
+                })));
+            }
 
-            setTimeout(() => {
-                loadTable('grades', setGrades, g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code }));
-                loadTable('communications', setCommunications, c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles }));
-                loadTable('schedules', setSchedules, s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time }));
-                loadTable('exams', setExams, e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score }));
-                loadTable('school_events', setEvents, e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type }));
-                loadTable('teacher_assignments', setAssignments, a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria }));
-                loadTable('attendance', setAttendanceRecords, a => ({ ...a, studentId: a.student_id }));
-            }, 100);
+            // Cargar Perfiles (Admins, Teachers, Students)
+            const { data: profilesData, error: profilesError } = await supabase.from('profiles').select('*');
+            if (profilesError) throw profilesError;
+
+            if (profilesData) {
+                setAdmins(profilesData.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
+                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, status: p.status, avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                })));
+                setTeachers(profilesData.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
+                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number, phone: p.phone, subject: p.subject, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                })));
+                setStudents(profilesData.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
+                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
+                })));
+            }
+
+            // Cargar datos académicos en paralelo para optimizar tiempo
+            const [
+                { data: gradesData },
+                { data: commsData },
+                { data: schedulesData },
+                { data: examsData },
+                { data: eventsData },
+                { data: assignmentsData },
+                { data: attendanceData }
+            ] = await Promise.all([
+                supabase.from('grades').select('*'),
+                supabase.from('communications').select('*'),
+                supabase.from('schedules').select('*'),
+                supabase.from('exams').select('*'),
+                supabase.from('school_events').select('*'),
+                supabase.from('teacher_assignments').select('*'),
+                supabase.from('attendance').select('*')
+            ]);
+
+            if (gradesData) setGrades(gradesData.map(g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code })));
+            if (commsData) setCommunications(commsData.map(c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles })));
+            if (schedulesData) setSchedules(schedulesData.map(s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time })));
+            if (examsData) setExams(examsData.map(e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score })));
+            if (eventsData) setEvents(eventsData.map(e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type })));
+            if (assignmentsData) setAssignments(assignmentsData.map(a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria })));
+            if (attendanceData) setAttendanceRecords(attendanceData.map(a => ({ ...a, studentId: a.student_id })));
 
         } catch (err: any) {
+            console.error("Error fetching data:", err);
+            setError(err.message || 'Error al cargar datos');
+        } finally {
             setIsLoading(false);
         }
     }, [isAuthenticated]);

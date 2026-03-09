@@ -71,15 +71,15 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         // PRIORIDAD: Mostrar la app rápido
-        setLoading(false); 
         const profile = await fetchUserProfile(session.user.id, session.user.email);
-        // Si no hay perfil, creamos uno de emergencia con los datos de Supabase Auth
         setUser(profile || mapProfileData(null, session.user));
       } else {
         setUser(null);
-        setLoading(false);
       }
     } catch (e) {
+      console.error("Auth init error:", e);
+      setUser(null);
+    } finally {
       setLoading(false);
     }
   }, [intendedRole]);
@@ -93,18 +93,19 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     initializeAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-        setLoading(false); // Liberar UI inmediatamente
+      // Se agrega INITIAL_SESSION para manejar recargas y sesiones persistentes correctamente
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
         const profile = await fetchUserProfile(session.user.id, session.user.email);
         const finalUser = profile || mapProfileData(null, session.user);
         
         if (intendedRole && finalUser.role !== intendedRole && profile) {
-          // Solo cerramos sesión si el perfil de DB confirma un rol diferente
+          // Solo cerramos sesión si el perfil de DB confirma un rol diferente al intentado
           await supabase.auth.signOut();
           setUser(null);
         } else {
           setUser(finalUser);
         }
+        setLoading(false); // Liberar UI inmediatamente
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setLoading(false);
@@ -119,11 +120,13 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
     setIntendedRole(role);
+    setLoading(true); // Mostrar carga al intentar login
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
     if (error) {
+      setLoading(false);
       setIntendedRole(null);
       throw error;
     }
