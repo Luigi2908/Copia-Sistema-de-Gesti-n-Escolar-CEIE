@@ -4,7 +4,6 @@ import {
     Campus, AdminUser, Teacher, Student, Grade, Communication, ClassSchedule, Exam, TeacherCourseAssignment, UserRole, AttendanceRecord, SchoolEvent, AcademicHistory
 } from '../types';
 import { useAuth } from './AuthContext';
-import { supabase } from '../lib/supabaseClient';
 
 interface DataContextType {
     campuses: Campus[];
@@ -60,6 +59,38 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Helper to manage local storage
+const getLocalData = (key: string, defaultData: any = []) => {
+    const data = localStorage.getItem(`school_${key}`);
+    return data ? JSON.parse(data) : defaultData;
+};
+
+const setLocalData = (key: string, data: any) => {
+    localStorage.setItem(`school_${key}`, JSON.stringify(data));
+};
+
+// Default Mock Data
+const MOCK_CAMPUSES: Campus[] = [
+    { id: 'c1', name: 'Sede Principal', address: 'Av. Central 123', admin: 'Admin Principal', teachers: 15, students: 300 },
+    { id: 'c2', name: 'Sede Norte', address: 'Calle Norte 456', admin: 'Admin Norte', teachers: 8, students: 150 }
+];
+
+const MOCK_ADMINS: AdminUser[] = [
+    { id: 'a1', name: 'Super Administrador', email: 'superadmin@ceie.com', role: UserRole.SUPER_ADMIN, status: 'active' },
+    { id: 'a2', name: 'Admin Principal', email: 'admin.principal@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c1', campusName: 'Sede Principal', status: 'active' },
+    { id: 'a3', name: 'Admin Norte', email: 'admin.norte@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c2', campusName: 'Sede Norte', status: 'active' }
+];
+
+const MOCK_TEACHERS: Teacher[] = [
+    { id: 't1', name: 'Profesor Matemáticas', email: 'profesor.matematicas@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Matemáticas', documentNumber: '12345678', phone: '555-0101', status: 'active' },
+    { id: 't2', name: 'Profesora Ciencias', email: 'profesora.ciencias@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Ciencias', documentNumber: '87654321', phone: '555-0102', status: 'active' }
+];
+
+const MOCK_STUDENTS: Student[] = [
+    { id: 's1', name: 'Estudiante Ejemplo', email: 'estudiante@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '001', schoolYear: '2026', schoolPeriod: '1', financialStatus: 'Al día', documentNumber: '11223344', status: 'active' },
+    { id: 's2', name: 'Estudiante Dos', email: 'estudiante2@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '002', schoolYear: '2026', schoolPeriod: '1', financialStatus: 'Pendiente', documentNumber: '44332211', status: 'active' }
+];
+
 export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const { isAuthenticated, user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
@@ -77,9 +108,16 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const [assignments, setAssignments] = useState<TeacherCourseAssignment[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
+    // Initialize mock data if empty
+    useEffect(() => {
+        if (!localStorage.getItem('school_campuses')) setLocalData('campuses', MOCK_CAMPUSES);
+        if (!localStorage.getItem('school_admins')) setLocalData('admins', MOCK_ADMINS);
+        if (!localStorage.getItem('school_teachers')) setLocalData('teachers', MOCK_TEACHERS);
+        if (!localStorage.getItem('school_students')) setLocalData('students', MOCK_STUDENTS);
+    }, []);
+
     const fetchData = useCallback(async () => {
         if (!isAuthenticated) {
-            // Limpiar datos al cerrar sesión para evitar inconsistencias
             setCampuses([]);
             setAdmins([]);
             setTeachers([]);
@@ -91,58 +129,20 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         setError(null);
         
         try {
-            // Cargar Campuses primero
-            const { data: campusesData, error: campusesError } = await supabase.from('campuses').select('*');
-            if (campusesError) throw campusesError;
-            
-            if (campusesData) {
-                setCampuses(campusesData.map(c => ({
-                    id: c.id, name: c.name, address: c.address, admin: c.admin, teachers: c.teachers || 0, students: c.students || 0
-                })));
-            }
+            // Mock delay
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Cargar Perfiles (Admins, Teachers, Students)
-            const { data: profilesData, error: profilesError } = await supabase.from('profiles').select('*');
-            if (profilesError) throw profilesError;
-
-            if (profilesData) {
-                setAdmins(profilesData.filter(p => p.role === UserRole.CAMPUS_ADMIN).map(p => ({ 
-                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, status: p.status, avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                })));
-                setTeachers(profilesData.filter(p => p.role === UserRole.TEACHER).map(p => ({ 
-                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, documentNumber: p.document_number, phone: p.phone, subject: p.subject, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                })));
-                setStudents(profilesData.filter(p => p.role === UserRole.STUDENT).map(p => ({ 
-                    id: p.id, name: p.name, email: p.email, role: p.role, campusId: p.campus_id, campusName: p.campus_name, class: p.class, section: p.section, rollNumber: p.roll_number, schoolPeriod: p.school_period, schoolYear: p.school_year, financialStatus: p.financial_status, documentNumber: p.document_number, status: p.status || 'active', avatar: p.avatar || `https://ui-avatars.com/api/?name=${(p.name || 'U').replace(' ', '+')}`
-                })));
-            }
-
-            // Cargar datos académicos en paralelo para optimizar tiempo
-            const [
-                { data: gradesData },
-                { data: commsData },
-                { data: schedulesData },
-                { data: examsData },
-                { data: eventsData },
-                { data: assignmentsData },
-                { data: attendanceData }
-            ] = await Promise.all([
-                supabase.from('grades').select('*'),
-                supabase.from('communications').select('*'),
-                supabase.from('schedules').select('*'),
-                supabase.from('exams').select('*'),
-                supabase.from('school_events').select('*'),
-                supabase.from('teacher_assignments').select('*'),
-                supabase.from('attendance').select('*')
-            ]);
-
-            if (gradesData) setGrades(gradesData.map(g => ({ ...g, studentId: g.student_id, teacherId: g.teacher_id, assignmentTitle: g.assignment_title, conceptCode: g.concept_code })));
-            if (commsData) setCommunications(commsData.map(c => ({ ...c, campusId: c.campus_id, campusName: c.campus_name, targetRoles: c.target_roles })));
-            if (schedulesData) setSchedules(schedulesData.map(s => ({ ...s, teacherId: s.teacher_id, dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time })));
-            if (examsData) setExams(examsData.map(e => ({ ...e, campusId: e.campus_id, teacherId: e.teacher_id, startDate: e.start_date, endDate: e.end_date, schoolYear: e.school_year, schoolPeriod: e.school_period, maxScore: e.max_score })));
-            if (eventsData) setEvents(eventsData.map(e => ({ ...e, campusId: e.campus_id, fileUrl: e.file_url, fileName: e.file_name, fileType: e.file_type })));
-            if (assignmentsData) setAssignments(assignmentsData.map(a => ({ ...a, teacherId: a.teacher_id, intensidadHoraria: a.intensidad_horaria })));
-            if (attendanceData) setAttendanceRecords(attendanceData.map(a => ({ ...a, studentId: a.student_id })));
+            setCampuses(getLocalData('campuses', MOCK_CAMPUSES));
+            setAdmins(getLocalData('admins', MOCK_ADMINS));
+            setTeachers(getLocalData('teachers', MOCK_TEACHERS));
+            setStudents(getLocalData('students', MOCK_STUDENTS));
+            setGrades(getLocalData('grades'));
+            setCommunications(getLocalData('communications'));
+            setSchedules(getLocalData('schedules'));
+            setExams(getLocalData('exams'));
+            setEvents(getLocalData('events'));
+            setAssignments(getLocalData('assignments'));
+            setAttendanceRecords(getLocalData('attendance'));
 
         } catch (err: any) {
             console.error("Error fetching data:", err);
@@ -156,27 +156,24 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         fetchData();
     }, [fetchData]);
 
-    // Función auxiliar para mapear datos a snake_case y manejar actualizaciones
     const dbUpdate = async (table: string, id: string, data: any) => {
-        const mappedData = Object.keys(data).reduce((acc: any, key) => {
-            const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-            acc[snakeKey] = data[key];
-            return acc;
-        }, {});
-        const { error } = await supabase.from(table).update(mappedData).eq('id', id);
-        if (error) throw error;
+        const currentData = getLocalData(table);
+        const updatedData = currentData.map((item: any) => item.id === id ? { ...item, ...data } : item);
+        setLocalData(table, updatedData);
         await fetchData();
     };
 
-    // Función auxiliar para inserciones
     const dbInsert = async (table: string, data: any) => {
-        const mappedData = Object.keys(data).reduce((acc: any, key) => {
-            const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-            acc[snakeKey] = data[key];
-            return acc;
-        }, {});
-        const { error } = await supabase.from(table).insert([mappedData]);
-        if (error) throw error;
+        const currentData = getLocalData(table);
+        const newItem = { ...data, id: Date.now().toString() };
+        setLocalData(table, [...currentData, newItem]);
+        await fetchData();
+    };
+
+    const dbDelete = async (table: string, id: string) => {
+        const currentData = getLocalData(table);
+        const filteredData = currentData.filter((item: any) => item.id !== id);
+        setLocalData(table, filteredData);
         await fetchData();
     };
 
@@ -202,7 +199,7 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         const nextSemester = passed ? (parseInt(student.section) + 1).toString() : student.section;
         
         try {
-            await dbUpdate('profiles', studentId, { section: nextSemester, history: updatedHistory });
+            await dbUpdate('students', studentId, { section: nextSemester, history: updatedHistory });
             return { success: passed, message: passed ? `Promovido a Semestre ${nextSemester}` : `Reprobado (${gpa.toFixed(2)})`, type: passed ? 'success' : 'warning' };
         } catch (e: any) {
             return { success: false, message: e.message, type: 'error' };
@@ -215,38 +212,57 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             refreshAll: fetchData,
             addCampus: (d) => dbInsert('campuses', d),
             updateCampus: (id, d) => dbUpdate('campuses', id, d),
-            deleteCampus: (id) => supabase.from('campuses').delete().eq('id', id).then(fetchData),
-            addAdmin: (d) => dbInsert('profiles', { ...d, role: UserRole.CAMPUS_ADMIN }),
-            updateAdmin: (id, d) => dbUpdate('profiles', id, d),
-            deleteAdmin: (id) => supabase.from('profiles').delete().eq('id', id).then(fetchData),
-            addTeacher: (d) => dbInsert('profiles', { ...d, role: UserRole.TEACHER }),
-            updateTeacher: (id, d) => dbUpdate('profiles', id, d),
-            deleteTeacher: (id) => supabase.from('profiles').delete().eq('id', id).then(fetchData),
-            addStudent: (d) => dbInsert('profiles', { ...d, role: UserRole.STUDENT }),
-            updateStudent: (id, d) => dbUpdate('profiles', id, d),
-            deleteStudent: (id) => supabase.from('profiles').delete().eq('id', id).then(fetchData),
+            deleteCampus: (id) => dbDelete('campuses', id),
+            addAdmin: (d) => dbInsert('admins', { ...d, role: UserRole.CAMPUS_ADMIN }),
+            updateAdmin: (id, d) => dbUpdate('admins', id, d),
+            deleteAdmin: (id) => dbDelete('admins', id),
+            addTeacher: (d) => dbInsert('teachers', { ...d, role: UserRole.TEACHER }),
+            updateTeacher: (id, d) => dbUpdate('teachers', id, d),
+            deleteTeacher: (id) => dbDelete('teachers', id),
+            addStudent: (d) => dbInsert('students', { ...d, role: UserRole.STUDENT }),
+            updateStudent: (id, d) => dbUpdate('students', id, d),
+            deleteStudent: (id) => dbDelete('students', id),
             promoteStudent,
             addGrade: (d) => dbInsert('grades', d),
             updateGrade: (id, d) => dbUpdate('grades', id, d),
-            deleteGrade: (id) => supabase.from('grades').delete().eq('id', id).then(fetchData),
+            deleteGrade: (id) => dbDelete('grades', id),
             addCommunication: (d) => dbInsert('communications', d),
             updateCommunication: (id, d) => dbUpdate('communications', id, d),
-            deleteCommunication: (id) => supabase.from('communications').delete().eq('id', id).then(fetchData),
+            deleteCommunication: (id) => dbDelete('communications', id),
             addExam: (d) => dbInsert('exams', d),
             updateExam: (id, d) => dbUpdate('exams', id, d),
-            deleteExam: (id) => supabase.from('exams').delete().eq('id', id).then(fetchData),
+            deleteExam: (id) => dbDelete('exams', id),
             addSchedule: (d) => dbInsert('schedules', d),
             updateSchedule: (id, d) => dbUpdate('schedules', id, d),
-            deleteSchedule: (id) => supabase.from('schedules').delete().eq('id', id).then(fetchData),
-            addAssignment: (d) => dbInsert('teacher_assignments', d),
-            updateAssignment: (id, d) => dbUpdate('teacher_assignments', id, d),
-            deleteAssignment: (id) => supabase.from('teacher_assignments').delete().eq('id', id).then(fetchData),
-            addEvent: (d) => dbInsert('school_events', d),
-            updateEvent: (id, d) => dbUpdate('school_events', id, d),
-            deleteEvent: (id) => supabase.from('school_events').delete().eq('id', id).then(fetchData),
-            saveAttendance: (d) => supabase.from('attendance').upsert([d]).then(fetchData),
-            deleteAttendance: (id) => supabase.from('attendance').delete().eq('id', id).then(fetchData),
-            updateUserAvatar: (id, role, avatar) => dbUpdate('profiles', id, { avatar }),
+            deleteSchedule: (id) => dbDelete('schedules', id),
+            addAssignment: (d) => dbInsert('assignments', d),
+            updateAssignment: (id, d) => dbUpdate('assignments', id, d),
+            deleteAssignment: (id) => dbDelete('assignments', id),
+            addEvent: (d) => dbInsert('events', d),
+            updateEvent: (id, d) => dbUpdate('events', id, d),
+            deleteEvent: (id) => dbDelete('events', id),
+            saveAttendance: async (d) => {
+                const currentData = getLocalData('attendance');
+                const existingIndex = currentData.findIndex((a: any) => a.id === d.id);
+                if (existingIndex >= 0) {
+                    currentData[existingIndex] = { ...currentData[existingIndex], ...d };
+                } else {
+                    currentData.push({ ...d, id: Date.now().toString() });
+                }
+                setLocalData('attendance', currentData);
+                await fetchData();
+            },
+            deleteAttendance: (id) => dbDelete('attendance', id),
+            updateUserAvatar: async (id, role, avatar) => {
+                let table = '';
+                if (role === UserRole.CAMPUS_ADMIN || role === UserRole.SUPER_ADMIN) table = 'admins';
+                else if (role === UserRole.TEACHER) table = 'teachers';
+                else if (role === UserRole.STUDENT) table = 'students';
+                
+                if (table) {
+                    await dbUpdate(table, id, { avatar });
+                }
+            },
             assignTemporaryPassword: async (id, role, p) => { console.warn("Clave provisional:", p); }
         }}>
             {children}

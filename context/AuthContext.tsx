@@ -1,7 +1,6 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { User, UserRole } from '../types';
-import { supabase } from '../lib/supabaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -17,62 +16,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [intendedRole, setIntendedRole] = useState<UserRole | null>(null);
-
-  const mapProfileData = (data: any, sessionUser?: any): User => ({
-    id: data?.id || sessionUser?.id || '',
-    name: data?.name || sessionUser?.email?.split('@')[0] || 'Usuario',
-    email: data?.email || sessionUser?.email || '',
-    role: (data?.role as UserRole) || (intendedRole as UserRole) || UserRole.STUDENT,
-    campusId: data?.campus_id,
-    campusName: data?.campus_name,
-    avatar: data?.avatar || `https://ui-avatars.com/api/?name=${(data?.name || 'U').replace(' ', '+')}`,
-    class: data?.class,
-    section: data?.section,
-    rollNumber: data?.roll_number,
-    documentNumber: data?.document_number,
-    phone: data?.phone,
-    financialStatus: data?.financial_status,
-    status: data?.status || 'active'
-  });
-
-  const fetchUserProfile = async (userId: string, email?: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) return null;
-      if (data) return mapProfileData(data);
-
-      if (email) {
-        const { data: dataByEmail } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('email', email)
-          .maybeSingle();
-        
-        if (dataByEmail) {
-          // Intento de reparación de ID en segundo plano
-          supabase.from('profiles').update({ id: userId }).eq('email', email).then();
-          return mapProfileData(dataByEmail);
-        }
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  };
 
   const initializeAuth = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // PRIORIDAD: Mostrar la app rápido
-        const profile = await fetchUserProfile(session.user.id, session.user.email);
-        setUser(profile || mapProfileData(null, session.user));
+      const storedUser = localStorage.getItem('auth_user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
       } else {
         setUser(null);
       }
@@ -82,65 +31,47 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [intendedRole]);
+  }, []);
 
   useEffect(() => {
-    // Timeout de seguridad extremo (5s) para no dejar al usuario en la pantalla de carga
-    const safetyTimer = setTimeout(() => {
-      if (loading) setLoading(false);
-    }, 5000);
-
     initializeAuth();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Se agrega INITIAL_SESSION para manejar recargas y sesiones persistentes correctamente
-      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-        const profile = await fetchUserProfile(session.user.id, session.user.email);
-        const finalUser = profile || mapProfileData(null, session.user);
-        
-        if (intendedRole && finalUser.role !== intendedRole && profile) {
-          // Solo cerramos sesión si el perfil de DB confirma un rol diferente al intentado
-          await supabase.auth.signOut();
-          setUser(null);
-        } else {
-          setUser(finalUser);
-        }
-        setLoading(false); // Liberar UI inmediatamente
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-      clearTimeout(safetyTimer);
-    };
-  }, [intendedRole, initializeAuth]);
+  }, [initializeAuth]);
 
   const login = async (email: string, password: string, role: UserRole): Promise<void> => {
-    setIntendedRole(role);
-    setLoading(true); // Mostrar carga al intentar login
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    if (error) {
+    setLoading(true);
+    
+    // Mock login logic
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Accept any password for local dev, or hardcode '123456'
+    if (password) {
+      const mockUser: User = {
+        id: 'mock-id-' + Date.now(),
+        name: email.split('@')[0],
+        email: email,
+        role: role,
+        avatar: `https://ui-avatars.com/api/?name=${email.split('@')[0]}`,
+        status: 'active'
+      };
+      
+      localStorage.setItem('auth_user', JSON.stringify(mockUser));
+      setUser(mockUser);
       setLoading(false);
-      setIntendedRole(null);
-      throw error;
+    } else {
+      setLoading(false);
+      throw new Error('Invalid login credentials');
     }
   };
 
   const logout = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
+    localStorage.removeItem('auth_user');
     setUser(null);
     setLoading(false);
   };
 
   const sendPasswordReset = async (email: string) => {
-    await supabase.auth.resetPasswordForEmail(email);
+    console.log("Password reset sent to", email);
   };
 
   return (
