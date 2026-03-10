@@ -76,19 +76,19 @@ const MOCK_CAMPUSES: Campus[] = [
 ];
 
 const MOCK_ADMINS: AdminUser[] = [
-    { id: 'a1', name: 'Super Administrador', email: 'superadmin@ceie.com', role: UserRole.SUPER_ADMIN, status: 'active' },
-    { id: 'a2', name: 'Admin Principal', email: 'admin.principal@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c1', campusName: 'Sede Principal', status: 'active' },
-    { id: 'a3', name: 'Admin Norte', email: 'admin.norte@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c2', campusName: 'Sede Norte', status: 'active' }
+    { id: 'a1', name: 'Super Administrador', email: 'superadmin@ceie.com', role: UserRole.SUPER_ADMIN, status: 'active', campusName: 'Global', avatar: '' },
+    { id: 'a2', name: 'Admin Principal', email: 'admin.principal@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c1', campusName: 'Sede Principal', status: 'active', avatar: '' },
+    { id: 'a3', name: 'Admin Norte', email: 'admin.norte@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c2', campusName: 'Sede Norte', status: 'active', avatar: '' }
 ];
 
 const MOCK_TEACHERS: Teacher[] = [
-    { id: 't1', name: 'Profesor Matemáticas', email: 'profesor.matematicas@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Matemáticas', documentNumber: '12345678', phone: '555-0101', status: 'active' },
-    { id: 't2', name: 'Profesora Ciencias', email: 'profesora.ciencias@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Ciencias', documentNumber: '87654321', phone: '555-0102', status: 'active' }
+    { id: 't1', name: 'Profesor Matemáticas', email: 'profesor.matematicas@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Matemáticas', documentNumber: '12345678', phone: '555-0101', status: 'active', avatar: '' },
+    { id: 't2', name: 'Profesora Ciencias', email: 'profesora.ciencias@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Ciencias', documentNumber: '87654321', phone: '555-0102', status: 'active', avatar: '' }
 ];
 
 const MOCK_STUDENTS: Student[] = [
-    { id: 's1', name: 'Estudiante Ejemplo', email: 'estudiante@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '001', schoolYear: '2026', schoolPeriod: '1', financialStatus: 'Al día', documentNumber: '11223344', status: 'active' },
-    { id: 's2', name: 'Estudiante Dos', email: 'estudiante2@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '002', schoolYear: '2026', schoolPeriod: '1', financialStatus: 'Pendiente', documentNumber: '44332211', status: 'active' }
+    { id: 's1', name: 'Estudiante Ejemplo', email: 'estudiante@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '001', schoolYear: 2026, schoolPeriod: 'A', financialStatus: 'Al día', documentNumber: '11223344', status: 'active', avatar: '' },
+    { id: 's2', name: 'Estudiante Dos', email: 'estudiante2@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '002', schoolYear: 2026, schoolPeriod: 'A', financialStatus: 'Pendiente (Sensibilización)', documentNumber: '44332211', status: 'active', avatar: '' }
 ];
 
 export const DataProvider = ({ children }: { children?: ReactNode }) => {

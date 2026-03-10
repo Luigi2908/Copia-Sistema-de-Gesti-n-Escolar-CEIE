@@ -519,7 +519,7 @@ const GradesPage: React.FC = () => {
     }, [grades, myStudents, activePeriod, numberOfPeriods]);
 
     const teacher = user as Teacher;
-    const teacherSubjects = [teacher.subject, teacher.secondarySubject].filter(Boolean);
+    const teacherSubjects = [teacher.subject, teacher.secondarySubject].filter((s): s is string => Boolean(s));
 
     const calculatePeriodAverage = (studentId: string, period: number, numberOfPeriods: number): { grade: number; totalPercentage: number } | null => {
         const studentGradesForPeriod = grades.filter((g: Grade) => g.studentId === studentId && getPeriodFromDate(g.date, numberOfPeriods) === period);

@@ -183,7 +183,7 @@ const GlobalSettingsPage: React.FC = () => {
                     <div className="flex space-x-1 overflow-x-auto pb-2 scrollbar-hide border-b dark:border-slate-800">
                         {tabs.map(tab => (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'} flex items-center gap-2 px-7 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap`}>
-                                {React.cloneElement(tab.icon as React.ReactElement, { className: "w-5 h-5" })}
+                                {React.cloneElement(tab.icon as React.ReactElement<{className?: string}>, { className: "w-5 h-5" })}
                                 {tab.label}
                             </button>
                         ))}
