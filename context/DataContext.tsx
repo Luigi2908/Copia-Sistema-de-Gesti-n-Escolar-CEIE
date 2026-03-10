@@ -132,17 +132,65 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             // Mock delay
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            setCampuses(getLocalData('campuses', MOCK_CAMPUSES));
-            setAdmins(getLocalData('admins', MOCK_ADMINS));
-            setTeachers(getLocalData('teachers', MOCK_TEACHERS));
-            setStudents(getLocalData('students', MOCK_STUDENTS));
-            setGrades(getLocalData('grades'));
-            setCommunications(getLocalData('communications'));
-            setSchedules(getLocalData('schedules'));
-            setExams(getLocalData('exams'));
-            setEvents(getLocalData('events'));
-            setAssignments(getLocalData('assignments'));
-            setAttendanceRecords(getLocalData('attendance'));
+            // URL BASE DE TU API EN HOSTINGER
+            // Cambia "https://tudominio.com" por tu dominio real
+            const API_BASE_URL = 'http://ceie.website/';
+
+            // Función auxiliar para consultar la API dinámicamente
+            const fetchResource = async (resourceName: string, fallbackData: any) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}?resource=${resourceName}`);
+                    if (response.ok) {
+                        return await response.json();
+                    } else {
+                        console.warn(`API de Hostinger no disponible para ${resourceName}, usando datos locales.`);
+                        return fallbackData;
+                    }
+                } catch (fetchError) {
+                    console.warn(`Error conectando a Hostinger para ${resourceName}, usando datos locales:`, fetchError);
+                    return fallbackData;
+                }
+            };
+
+            // Ejecutar todas las consultas a la API en paralelo
+            const [
+                fetchedCampuses,
+                fetchedAdmins,
+                fetchedTeachers,
+                fetchedStudents,
+                fetchedGrades,
+                fetchedCommunications,
+                fetchedSchedules,
+                fetchedExams,
+                fetchedEvents,
+                fetchedAssignments,
+                fetchedAttendance
+            ] = await Promise.all([
+                fetchResource('campuses', getLocalData('campuses', MOCK_CAMPUSES)),
+                fetchResource('admins', getLocalData('admins', MOCK_ADMINS)),
+                fetchResource('teachers', getLocalData('teachers', MOCK_TEACHERS)),
+                fetchResource('students', getLocalData('students', MOCK_STUDENTS)),
+                fetchResource('grades', getLocalData('grades')),
+                fetchResource('communications', getLocalData('communications')),
+                fetchResource('schedules', getLocalData('schedules')),
+                fetchResource('exams', getLocalData('exams')),
+                fetchResource('events', getLocalData('events')),
+                fetchResource('assignments', getLocalData('assignments')),
+                fetchResource('attendance', getLocalData('attendance'))
+            ]);
+
+            // Actualizar el estado de la aplicación con los datos obtenidos
+            setCampuses(fetchedCampuses);
+            setAdmins(fetchedAdmins);
+            setTeachers(fetchedTeachers);
+            setStudents(fetchedStudents);
+            setGrades(fetchedGrades);
+            setCommunications(fetchedCommunications);
+            setSchedules(fetchedSchedules);
+            setExams(fetchedExams);
+            setEvents(fetchedEvents);
+            setAssignments(fetchedAssignments);
+            setAttendanceRecords(fetchedAttendance);
 
         } catch (err: any) {
             console.error("Error fetching data:", err);
