@@ -490,16 +490,16 @@ const CommunicationsPage: React.FC = () => {
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-slate-100 dark:border-slate-800 pt-4 sm:pt-0 sm:pl-6 justify-end sm:justify-start">
-                                        <a href={comm.fileUrl} download={comm.fileName} className="flex-1 sm:flex-none text-center px-4 py-2 bg-primary/10 text-primary font-bold rounded-lg hover:bg-primary hover:text-white transition-colors text-sm dark:bg-primary/20 dark:text-sky-300 dark:hover:bg-primary dark:hover:text-white">
+                                    <div className="flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-slate-100 dark:border-slate-800 pt-4 sm:pt-0 sm:pl-6 justify-end sm:justify-start opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all transform sm:translate-x-2 sm:group-hover:translate-x-0">
+                                        <a href={comm.fileUrl} download={comm.fileName} className="flex-1 sm:flex-none text-center px-4 py-2 bg-primary/10 text-primary font-bold rounded-xl hover:bg-primary hover:text-white transition-colors text-sm dark:bg-primary/20 dark:text-sky-300 dark:hover:bg-primary dark:hover:text-white">
                                             Descargar
                                         </a>
                                         {canManage && (
                                             <>
-                                            <button onClick={() => openEditComm(comm)} className="p-2 text-amber-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors dark:hover:bg-amber-900/20">
+                                            <button onClick={() => openEditComm(comm)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800">
                                                 <EditIcon className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => handleDeleteComm(comm.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors dark:hover:bg-rose-900/20">
+                                            <button onClick={() => handleDeleteComm(comm.id)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800">
                                                 <TrashIcon className="w-5 h-5" />
                                             </button>
                                             </>
@@ -567,20 +567,20 @@ const CommunicationsPage: React.FC = () => {
                                             ) : <div></div>}
 
                                             {canManage && (
-                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                                     <button 
                                                         onClick={() => openEditEvent(event)}
-                                                        className="text-xs font-bold text-amber-500 hover:text-amber-700 hover:bg-amber-50 px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                                        className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800"
                                                         title="Editar"
                                                     >
-                                                        <EditIcon className="w-3.5 h-3.5" />
+                                                        <EditIcon className="w-4 h-4" />
                                                     </button>
                                                     <button 
                                                         onClick={() => handleDeleteEvent(event.id)}
-                                                        className="text-xs font-bold text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800"
                                                         title="Eliminar"
                                                     >
-                                                        <TrashIcon className="w-3.5 h-3.5" />
+                                                        <TrashIcon className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             )}

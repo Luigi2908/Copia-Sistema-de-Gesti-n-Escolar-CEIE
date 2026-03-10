@@ -138,12 +138,12 @@ const StaffManagementPage: React.FC = () => {
                                 <th scope="col" className="px-6 py-3">Email</th>
                                 <th scope="col" className="px-6 py-3">Rol</th>
                                 <th scope="col" className="px-6 py-3">Estado</th>
-                                <th scope="col" className="px-6 py-3">Acciones</th>
+                                <th scope="col" className="px-6 py-3 text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {staffForView.map(staff => (
-                                <tr key={staff.id} className="bg-white border-b hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-600">
+                                <tr key={staff.id} className="bg-white border-b hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-600 group">
                                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{staff.name}</td>
                                     <td className="px-6 py-4">{staff.email}</td>
                                     <td className="px-6 py-4">{staff.role}</td>
@@ -152,13 +152,15 @@ const StaffManagementPage: React.FC = () => {
                                             {staff.status === 'active' ? 'Activo' : 'Inactivo'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 flex items-center space-x-2">
-                                        <button onClick={() => { setEditingStaff(staff); setIsModalOpen(true); }} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-yellow-600 dark:text-yellow-400 transition-colors focus:outline-none shadow-sm" title="Editar">
-                                            <EditIcon className="w-5 h-5"/>
-                                        </button>
-                                        <button onClick={() => setDeletingStaff(staff)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-red-600 dark:text-red-400 transition-colors focus:outline-none shadow-sm" title="Eliminar">
-                                            <TrashIcon className="w-5 h-5"/>
-                                        </button>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                            <button onClick={() => { setEditingStaff(staff); setIsModalOpen(true); }} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Editar">
+                                                <EditIcon className="w-5 h-5"/>
+                                            </button>
+                                            <button onClick={() => setDeletingStaff(staff)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800" title="Eliminar">
+                                                <TrashIcon className="w-5 h-5"/>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

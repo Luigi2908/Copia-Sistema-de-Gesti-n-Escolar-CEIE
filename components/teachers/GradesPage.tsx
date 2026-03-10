@@ -269,14 +269,14 @@ export const GradesManagementModal: React.FC<{
                             <div key={subject} className="mb-4">
                                 <h3 className="font-bold text-base mb-2 p-2 bg-gray-100 rounded dark:bg-gray-700">{subject}</h3>
                                 {(subjectGrades as Grade[]).map(g => (
-                                    <div key={g.id} className="grid grid-cols-6 gap-2 items-center p-2 border-b dark:border-gray-600">
+                                    <div key={g.id} className="grid grid-cols-6 gap-2 items-center p-2 border-b dark:border-gray-600 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <span className="col-span-2">{g.assignmentTitle}</span>
                                         <span className="font-semibold">{g.score.toFixed(1)}</span>
                                         <span>{g.percentage}%</span>
                                         <span className="text-xs text-gray-500 italic col-span-1">{g.comments || 'Sin comentarios'}</span>
-                                        <div className="flex gap-2 justify-end">
-                                            <button type="button" onClick={() => handleEdit(g)} disabled={isPeriodLocked} className="p-1 text-blue-600 rounded-full hover:bg-blue-100 disabled:text-gray-400 disabled:cursor-not-allowed"><EditIcon className="w-4 h-4"/></button>
-                                            <button type="button" onClick={() => onDeleteGrade(g.id)} disabled={isPeriodLocked} className="p-1 text-red-600 rounded-full hover:bg-red-100 disabled:text-gray-400 disabled:cursor-not-allowed"><TrashIcon className="w-4 h-4"/></button>
+                                        <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                            <button type="button" onClick={() => handleEdit(g)} disabled={isPeriodLocked} className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"><EditIcon className="w-4 h-4"/></button>
+                                            <button type="button" onClick={() => onDeleteGrade(g.id)} disabled={isPeriodLocked} className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800 disabled:opacity-50 disabled:cursor-not-allowed"><TrashIcon className="w-4 h-4"/></button>
                                         </div>
                                     </div>
                                 ))}
@@ -676,7 +676,7 @@ const GradesPage: React.FC = () => {
                                     <tr>
                                         <th className="px-6 py-3">Estudiante</th>
                                         <th className="px-6 py-3">Promedio del Periodo</th>
-                                        <th className="px-6 py-3">Acciones</th>
+                                        <th className="px-6 py-3 text-right">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -684,7 +684,7 @@ const GradesPage: React.FC = () => {
                                         const avgInfo = calculatePeriodAverage(student.id, activePeriod, numberOfPeriods);
                                         const qualitative = getQualitativeFinalGrade(avgInfo?.grade ?? null);
                                         return (
-                                            <tr key={student.id} className="bg-white border-b hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                                            <tr key={student.id} className="bg-white border-b hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 group">
                                                 <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{student.name}</td>
                                                 <td className="px-6 py-4 font-bold">
                                                     {avgInfo ? (
@@ -694,8 +694,12 @@ const GradesPage: React.FC = () => {
                                                         </div>
                                                     ) : 'N/A'}
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <button onClick={() => setManagingStudent(student)} className="font-medium text-primary hover:underline">Gestionar Calificaciones</button>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                        <button onClick={() => setManagingStudent(student)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Gestionar Calificaciones">
+                                                            <EditIcon className="w-5 h-5"/>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

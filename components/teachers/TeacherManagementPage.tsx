@@ -251,11 +251,11 @@ const ViewAssignmentsModal: React.FC<{
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{ass.class}</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => onEdit(ass)} className="p-2 bg-white dark:bg-slate-900 text-amber-500 hover:text-amber-600 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 transition-colors" title="Editar Materia">
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                <button onClick={() => onEdit(ass)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Editar Materia">
                                     <EditIcon className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => onDelete(ass.id)} className="p-2 bg-white dark:bg-slate-900 text-rose-500 hover:text-rose-600 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 transition-colors" title="Eliminar de la carga">
+                                <button onClick={() => onDelete(ass.id)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800" title="Eliminar de la carga">
                                     <TrashIcon className="w-4 h-4" />
                                 </button>
                             </div>
@@ -455,22 +455,22 @@ const TeacherManagementPage: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-8 py-5 whitespace-nowrap text-right">
-                                           <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                                                <button onClick={() => setInspectingTeacher(teacher)} className="p-2.5 rounded-xl bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-600 transition-all shadow-sm border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:text-white" title="Ver Ficha Completa">
+                                            <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                <button onClick={() => setInspectingTeacher(teacher)} className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-700 transition-all shadow-sm border border-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400 dark:border-slate-700" title="Ver Ficha Completa">
                                                     <EyeIcon className="w-5 h-5"/>
                                                 </button>
                                                 {isSuperAdmin && (
-                                                    <button onClick={() => setAssigningPassTeacher(teacher)} className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all shadow-sm border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400" title="Clave Provisional">
+                                                    <button onClick={() => setAssigningPassTeacher(teacher)} className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all shadow-sm border border-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800" title="Clave Provisional">
                                                         <KeyIcon className="w-5 h-5"/>
                                                     </button>
                                                 )}
-                                                <button onClick={() => setResettingPasswordTeacher(teacher)} className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 transition-all shadow-sm border border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400" title="Restablecimiento Email">
+                                                <button onClick={() => setResettingPasswordTeacher(teacher)} className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 transition-all shadow-sm border border-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800" title="Restablecimiento Email">
                                                     <PaperAirplaneIcon className="w-5 h-5"/>
                                                 </button>
-                                                <button onClick={() => { setEditingTeacher(teacher); setIsModalOpen(true); }} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/20 dark:text-blue-400" title="Editar Perfil">
+                                                <button onClick={() => { setEditingTeacher(teacher); setIsModalOpen(true); }} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Editar Perfil">
                                                     <EditIcon className="w-5 h-5"/>
                                                 </button>
-                                                <button onClick={() => setDeletingTeacher(teacher)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/20 dark:text-rose-400" title="Eliminar Registro">
+                                                <button onClick={() => setDeletingTeacher(teacher)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800" title="Eliminar Registro">
                                                     <TrashIcon className="w-5 h-5"/>
                                                 </button>
                                             </div>

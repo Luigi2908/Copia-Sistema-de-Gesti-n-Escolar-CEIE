@@ -726,18 +726,18 @@ const StudentManagementPage: React.FC = () => {
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end items-center gap-2">
-                                                <button onClick={() => setPromotingStudent(student)} className="p-2 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 transition-all focus:outline-none shadow-sm dark:bg-indigo-900/20 dark:text-indigo-400" title="Cierre de Semestre / Promoción">
-                                                    <CheckIcon className="w-4 h-4"/>
+                                            <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                <button onClick={() => setPromotingStudent(student)} className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 transition-all shadow-sm border border-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 dark:border-indigo-800" title="Cierre de Semestre / Promoción">
+                                                    <CheckIcon className="w-5 h-5"/>
                                                 </button>
-                                                <button onClick={() => setViewingStudent(student)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-blue-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white" title="Ver Detalles">
-                                                    <EyeIcon className="w-4 h-4"/>
+                                                <button onClick={() => setViewingStudent(student)} className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-700 transition-all shadow-sm border border-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400 dark:border-slate-700" title="Ver Detalles">
+                                                    <EyeIcon className="w-5 h-5"/>
                                                 </button>
-                                                <button onClick={() => { setEditingStudent(student); setIsModalOpen(true); }} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-amber-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400" title="Editar">
-                                                    <EditIcon className="w-4 h-4"/>
+                                                <button onClick={() => { setEditingStudent(student); setIsModalOpen(true); }} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Editar">
+                                                    <EditIcon className="w-5 h-5"/>
                                                 </button>
-                                                <button onClick={() => setDeletingStudent(student)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 transition-all focus:outline-none shadow-sm dark:bg-slate-800 dark:text-slate-400 dark:hover:text-rose-400" title="Eliminar">
-                                                    <TrashIcon className="w-4 h-4"/>
+                                                <button onClick={() => setDeletingStudent(student)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800" title="Eliminar">
+                                                    <TrashIcon className="w-5 h-5"/>
                                                 </button>
                                             </div>
                                         </td>

@@ -676,12 +676,12 @@ const ClassAnnotationsPage: React.FC = () => {
                                                                         <th className="px-4 py-3">Criterio</th>
                                                                         <th className="px-4 py-3 text-center">Nota</th>
                                                                         <th className="px-4 py-3">Observación</th>
-                                                                        <th className="px-4 py-3 text-center">Acciones</th>
+                                                                        <th className="px-4 py-3 text-right">Acciones</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                                                                     {getStudentHistory(student.id).map((item) => (
-                                                                        <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                                        <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                                                             <td className="px-4 py-3 text-slate-500 font-mono">{new Date(item.date).toLocaleDateString()}</td>
                                                                             <td className="px-4 py-3">
                                                                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${item.type === 'Nota' ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-600'}`}>{item.type}</span>
@@ -691,10 +691,10 @@ const ClassAnnotationsPage: React.FC = () => {
                                                                                 {item.type === 'Nota' ? <span className="font-bold text-sm">{item.value}</span> : <span className="font-bold text-slate-800 dark:text-white text-sm">{item.value}</span>}
                                                                             </td>
                                                                             <td className="px-4 py-3 text-slate-500 italic max-w-[250px] truncate" title={(item.raw as any).comments || ''}>{(item.raw as any).comments || '-'}</td>
-                                                                            <td className="px-4 py-3 text-center">
-                                                                                <div className="flex justify-center gap-2">
-                                                                                    <button onClick={() => setEditingRecord(item)} className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg"><EditIcon className="w-4 h-4" /></button>
-                                                                                    <button onClick={() => handleDeleteHistoryItem(item)} className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg"><TrashIcon className="w-4 h-4" /></button>
+                                                                            <td className="px-4 py-3 text-right">
+                                                                                <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                                                    <button onClick={() => setEditingRecord(item)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800"><EditIcon className="w-4 h-4" /></button>
+                                                                                    <button onClick={() => handleDeleteHistoryItem(item)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800"><TrashIcon className="w-4 h-4" /></button>
                                                                                 </div>
                                                                             </td>
                                                                         </tr>

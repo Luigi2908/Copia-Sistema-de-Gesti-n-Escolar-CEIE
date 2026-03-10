@@ -279,9 +279,9 @@ const CampusManagementPage: React.FC = () => {
                                 <button onClick={() => openEditModal(campus)} className="text-[10px] font-black text-primary hover:text-blue-800 flex items-center gap-2 transition-colors uppercase tracking-widest">
                                     <ClipboardDocumentListIcon className="w-4 h-4" /> Configuración
                                 </button>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => openEditModal(campus)} className="p-3 rounded-2xl bg-white text-slate-400 border border-slate-100 hover:border-amber-300 hover:text-amber-600 shadow-sm transition-all dark:bg-slate-800 dark:border-slate-700" title="Editar Perfil"><EditIcon className="w-5 h-5"/></button>
-                                    <button onClick={() => setDeletingCampus(campus)} className="p-3 rounded-2xl bg-white text-slate-400 border border-slate-100 hover:border-rose-300 hover:text-rose-600 shadow-sm transition-all dark:bg-slate-800 dark:border-slate-700" title="Eliminar"><TrashIcon className="w-5 h-5"/></button>
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                    <button onClick={() => openEditModal(campus)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Editar Perfil"><EditIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => setDeletingCampus(campus)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800" title="Eliminar"><TrashIcon className="w-5 h-5"/></button>
                                 </div>
                             </div>
                         </div>

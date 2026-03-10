@@ -387,17 +387,17 @@ const AdminManagementPage: React.FC = () => {
                                         <td className="px-8 py-5 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                                 {isSuperAdmin && (
-                                                    <button onClick={() => setAssigningPassAdmin(admin)} className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all shadow-sm border border-amber-100" title="Clave Provisional">
+                                                    <button onClick={() => setAssigningPassAdmin(admin)} className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-700 transition-all shadow-sm border border-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800" title="Clave Provisional">
                                                         <KeyIcon className="w-5 h-5"/>
                                                     </button>
                                                 )}
-                                                <button onClick={() => setResettingPasswordAdmin(admin)} className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 transition-all shadow-sm border border-emerald-100" title="Enviar Recuperación">
+                                                <button onClick={() => setResettingPasswordAdmin(admin)} className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-700 transition-all shadow-sm border border-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800" title="Enviar Recuperación">
                                                     <PaperAirplaneIcon className="w-5 h-5"/>
                                                 </button>
-                                                <button onClick={() => openEditModal(admin)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100" title="Editar Perfil">
+                                                <button onClick={() => openEditModal(admin)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Editar Perfil">
                                                     <EditIcon className="w-5 h-5"/>
                                                 </button>
-                                                <button onClick={() => setDeletingAdmin(admin)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100" title="Revocar Acceso">
+                                                <button onClick={() => setDeletingAdmin(admin)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800" title="Revocar Acceso">
                                                     <TrashIcon className="w-5 h-5"/>
                                                 </button>
                                             </div>

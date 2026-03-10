@@ -282,7 +282,7 @@ const MyStudentsPage: React.FC = () => {
                                             
                                             return (
                                             <React.Fragment key={student.id}>
-                                                <tr className={`bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors ${isExpanded ? 'bg-blue-50' : ''}`}>
+                                                <tr className={`bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors group ${isExpanded ? 'bg-blue-50' : ''}`}>
                                                     <td className="px-6 py-4">
                                                         <button onClick={() => setExpandedStudentId(isExpanded ? null : student.id)} className="text-gray-400 hover:text-blue-600">
                                                             {isExpanded ? <ChevronDownIcon className="w-4 h-4"/> : <ChevronRightIcon className="w-4 h-4"/>}
@@ -296,12 +296,12 @@ const MyStudentsPage: React.FC = () => {
                                                         {finalGrade.toFixed(1)}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end space-x-2">
-                                                            <button onClick={() => setManagingStudent(student)} className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200" title="Notas">
-                                                                <ClipboardDocumentListIcon className="w-4 h-4"/>
+                                                        <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                            <button onClick={() => setManagingStudent(student)} className="p-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all shadow-sm border border-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 dark:border-blue-800" title="Notas">
+                                                                <ClipboardDocumentListIcon className="w-5 h-5"/>
                                                             </button>
-                                                            <button onClick={() => setAttendanceStudent(student)} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Falla">
-                                                                <ExclamationTriangleIcon className="w-4 h-4"/>
+                                                            <button onClick={() => setAttendanceStudent(student)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition-all shadow-sm border border-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800" title="Falla">
+                                                                <ExclamationTriangleIcon className="w-5 h-5"/>
                                                             </button>
                                                         </div>
                                                     </td>
