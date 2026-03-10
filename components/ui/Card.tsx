@@ -11,7 +11,7 @@ const Card: React.FC<CardProps> = ({ children, className = '' }) => {
   const defaultPadding = hasPaddingOverride ? '' : 'p-6';
 
   return (
-    <div className={`bg-white rounded-xl shadow-card border border-slate-100/50 ${defaultPadding} ${className} dark:bg-slate-900 dark:border-slate-800 dark:shadow-none transition-all duration-200`}>
+    <div className={`bg-white/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:bg-slate-900/80 dark:border-slate-800/60 ${defaultPadding} ${className} transition-all duration-300`}>
       {children}
     </div>
   );

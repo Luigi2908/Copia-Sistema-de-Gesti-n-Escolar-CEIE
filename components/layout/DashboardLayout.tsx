@@ -28,16 +28,16 @@ import RankingPage from '../teachers/RankingPage';
 import Footer from './Footer';
 
 const PlaceholderPage: React.FC<{title: string}> = ({title}) => (
-    <div className="p-6 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 dark:bg-slate-800/80 dark:border-slate-700">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent dark:from-white dark:to-gray-300">{title}</h1>
-        <p className="mt-2 text-text-secondary text-sm">Este módulo está en construcción. Vuelve pronto para ver las actualizaciones.</p>
+    <div className="p-8 bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:bg-slate-900/80 dark:border-slate-800/60 text-center">
+        <h1 className="text-3xl font-black bg-gradient-to-r from-slate-800 to-slate-500 bg-clip-text text-transparent dark:from-white dark:to-slate-400 tracking-tight">{title}</h1>
+        <p className="mt-4 text-slate-500 font-medium">Este módulo está en construcción. Vuelve pronto para ver las actualizaciones.</p>
     </div>
 );
 
 const AccessDeniedPage: React.FC = () => (
-    <div className="p-6 bg-white rounded-xl shadow-lg border border-red-100 text-center dark:bg-slate-800 dark:border-red-900/30">
-        <h1 className="text-2xl font-bold text-red-600">Acceso Denegado</h1>
-        <p className="mt-2 text-text-secondary text-sm">No tiene los permisos necesarios para ver esta página.</p>
+    <div className="p-8 bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-rose-100 text-center dark:bg-slate-900/80 dark:border-rose-900/30">
+        <h1 className="text-3xl font-black text-rose-600 tracking-tight">Acceso Denegado</h1>
+        <p className="mt-4 text-slate-500 font-medium">No tiene los permisos necesarios para ver esta página.</p>
     </div>
 );
 
@@ -144,24 +144,29 @@ const DashboardLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 relative overflow-hidden text-text-primary dark:text-slate-200">
+    <div className="flex h-screen bg-slate-50/50 dark:bg-slate-950 relative overflow-hidden text-slate-800 dark:text-slate-200 font-sans selection:bg-primary/20 selection:text-primary">
+      {/* Subtle Background Gradients */}
+      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent dark:from-primary/10 pointer-events-none"></div>
+      <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-400/10 blur-[120px] pointer-events-none dark:bg-blue-600/10"></div>
+      <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-indigo-400/10 blur-[120px] pointer-events-none dark:bg-indigo-600/10"></div>
+
       {/* Backdrop Overlay */}
       {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-slate-900/60 z-40 transition-opacity duration-300 backdrop-blur-sm" 
+            className="fixed inset-0 bg-slate-900/40 z-40 transition-opacity duration-300 backdrop-blur-sm" 
             onClick={toggleSidebar}
           ></div>
       )}
 
       {/* Sidebar Drawer */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out shadow-2xl`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-[20px_0_60px_-15px_rgba(0,0,0,0.1)]`}>
          <Sidebar currentPage={currentPage} setCurrentPage={handlePageChange} isOpen={true} />
       </div>
 
-      <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative z-10">
         <Header toggleSidebar={toggleSidebar} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 scroll-smooth">
-          <div className="w-full px-2 sm:px-4 max-w-8xl mx-auto">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-8 scroll-smooth custom-scrollbar">
+          <div className="w-full max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
             {renderCurrentPage()}
           </div>
         </main>

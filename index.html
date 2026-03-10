@@ -8,7 +8,7 @@
     <title>Sistema de Gestión Escolar</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       function toRGB(hex) {
@@ -22,27 +22,32 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+              sans: ['"Plus Jakarta Sans"', 'sans-serif'],
             },
             colors: {
               'primary': 'rgb(var(--color-primary) / <alpha-value>)',
               'secondary': 'rgb(var(--color-secondary) / <alpha-value>)',
-              'accent': '#0EA5E9',
+              'accent': '#0284C7', // A slightly deeper, more professional blue
               'background': '#F8FAFC',
               'surface': '#FFFFFF',
               'text-primary': '#0F172A',
-              'text-secondary': '#64748B',
+              'text-secondary': '#475569', // Slightly softer secondary text
             },
             boxShadow: {
-              'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
-              'card': '0 0 0 1px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.04)',
+              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+              'card': '0 2px 10px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.04)',
+              'floating': '0 10px 40px -10px rgba(0,0,0,0.08)',
+            },
+            borderRadius: {
+              'xl': '1rem',
+              '2xl': '1.5rem',
             },
             animation: {
-              'fade-in-up': 'fade-in-up 0.4s ease-out both',
+              'fade-in-up': 'fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
             },
             keyframes: {
               'fade-in-up': {
-                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '0%': { opacity: '0', transform: 'translateY(12px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
               },
             },
@@ -65,8 +70,34 @@
 }
 </script>
 <link rel="stylesheet" href="/index.css">
+<style>
+  /* Global styles for a more airy feel */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+  }
+  /* Custom scrollbar for a cleaner look */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+</style>
 </head>
-  <body class="bg-background text-text-primary antialiased dark:bg-slate-950 dark:text-slate-200">
+  <body class="bg-background text-text-primary antialiased dark:bg-slate-950 dark:text-slate-200 selection:bg-accent/20 selection:text-accent">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

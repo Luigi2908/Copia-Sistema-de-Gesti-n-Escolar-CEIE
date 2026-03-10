@@ -23,15 +23,15 @@ const NavLink: React.FC<{ icon: React.ReactElement<{ className?: string }>; labe
   return (
     <li
       onClick={() => setCurrentPage(pageName)}
-      className={`group flex items-center px-4 py-2.5 mx-3 cursor-pointer rounded-lg mb-1 transition-all duration-200 ${
+      className={`group flex items-center px-4 py-3.5 mx-4 cursor-pointer rounded-2xl mb-2 transition-all duration-300 ${
         isActive 
-          ? 'bg-primary/10 text-primary font-semibold dark:bg-primary/20 dark:text-sky-400' 
-          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+          ? 'bg-gradient-to-r from-primary/10 to-blue-500/5 text-primary font-black dark:from-primary/20 dark:to-blue-500/10 dark:text-sky-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]' 
+          : 'text-slate-500 hover:bg-slate-50/80 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200 font-bold'
       }`}
     >
-      {React.cloneElement(icon, { className: `w-5 h-5 mr-3 transition-colors duration-200 ${isActive ? 'text-primary dark:text-sky-400' : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'}` })}
+      {React.cloneElement(icon, { className: `w-5 h-5 mr-4 transition-all duration-300 ${isActive ? 'text-primary dark:text-sky-400 scale-110' : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300 group-hover:scale-110'}` })}
       <span className="text-sm tracking-wide">{label}</span>
-      {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary dark:bg-sky-400"></div>}
+      {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary dark:bg-sky-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>}
     </li>
   );
 };
@@ -90,11 +90,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isOpen }
   const navItems = getNavItems();
 
   return (
-    <aside className="bg-white h-full flex flex-col overflow-hidden dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 pt-6 z-20">
+    <aside className="bg-white/80 backdrop-blur-2xl h-full flex flex-col overflow-hidden dark:bg-slate-900/80 border-r border-slate-100/50 dark:border-slate-800/50 pt-8 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300">
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <h3 className="px-7 mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Menu</h3>
-            <ul className="space-y-0.5">
+            <h3 className="px-8 mb-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">Menú Principal</h3>
+            <ul className="space-y-1">
               {navItems.map(item => (
                 <NavLink 
                   key={item.page}
@@ -107,13 +107,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isOpen }
               ))}
             </ul>
         </div>
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <div className="p-5 border-t border-slate-100/50 dark:border-slate-800/50 bg-slate-50/30 dark:bg-slate-900/30 backdrop-blur-md">
           <li
             onClick={logout}
-            className="flex items-center px-4 py-2.5 cursor-pointer rounded-lg text-slate-500 hover:bg-white hover:text-rose-600 hover:shadow-sm transition-all duration-200 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-rose-400 group border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+            className="flex items-center px-4 py-3.5 cursor-pointer rounded-2xl text-slate-500 hover:bg-rose-50/80 hover:text-rose-600 transition-all duration-300 dark:text-slate-400 dark:hover:bg-rose-900/20 dark:hover:text-rose-400 group font-bold"
           >
-            <LogoutIcon className="w-5 h-5 mr-3 group-hover:text-rose-600 transition-colors" />
-            <span className="font-medium text-sm">Cerrar Sesión</span>
+            <LogoutIcon className="w-5 h-5 mr-4 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-all group-hover:-translate-x-1" />
+            <span className="text-sm tracking-wide">Cerrar Sesión</span>
           </li>
         </div>
     </aside>

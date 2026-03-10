@@ -46,49 +46,77 @@ const StudentDashboard: React.FC = () => {
     const getTeacherName = (teacherId: string) => teachers.find(t => t.id === teacherId)?.name || 'N/A';
 
     return (
-        <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard icon={<AcademicCapIcon />} title="Promedio General" value={calculateOverallAverage()} color="#3B82F6" />
                 <StatCard icon={<ExamsIcon />} title="Próximo Examen" value={findNextExam()} color="#10B981" />
                 <StatCard icon={<ClipboardDocumentListIcon />} title="Clases Hoy" value={String(todaySchedules.length)} color="#F97316" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Card className="lg:col-span-2">
-                    <h3 className="font-semibold text-base mb-3">Horario de Hoy</h3>
-                    {todaySchedules.length > 0 ? (
-                        <div className="space-y-2">
-                            {todaySchedules.map(s => (
-                                <div key={s.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg dark:bg-slate-700/50">
-                                    <div>
-                                        <p className="font-semibold text-sm text-primary dark:text-sky-400">{s.startTime} - {s.endTime}</p>
-                                        <p className="font-bold text-sm text-text-primary dark:text-white">{s.subject}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="lg:col-span-2 overflow-hidden flex flex-col bg-white/80 backdrop-blur-2xl dark:bg-slate-900/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-slate-100/50 dark:border-slate-800/50 rounded-3xl transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100/50 dark:border-slate-800/50 bg-gradient-to-r from-transparent via-transparent to-orange-500/5 dark:to-orange-500/10">
+                        <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-3 tracking-tight">
+                            <div className="p-2.5 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl shadow-sm">
+                                <ClipboardDocumentListIcon className="w-5 h-5 text-orange-500 dark:text-orange-400"/>
+                            </div>
+                            Horario de Hoy
+                        </h3>
+                    </div>
+                    <div className="p-6">
+                        {todaySchedules.length > 0 ? (
+                            <div className="space-y-4">
+                                {todaySchedules.map(s => (
+                                    <div key={s.id} className="flex justify-between items-center p-5 bg-slate-50/80 rounded-2xl dark:bg-slate-800/50 border border-slate-100/80 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+                                        <div>
+                                            <p className="font-black text-sm text-primary dark:text-sky-400 tracking-widest uppercase">{s.startTime} - {s.endTime}</p>
+                                            <p className="font-bold text-base text-slate-800 dark:text-white mt-1 group-hover:text-primary dark:group-hover:text-sky-400 transition-colors">{s.subject}</p>
+                                        </div>
+                                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">{getTeacherName(s.teacherId)}</p>
                                     </div>
-                                    <p className="text-xs text-text-secondary dark:text-slate-400">{getTeacherName(s.teacherId)}</p>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-12 flex flex-col items-center justify-center opacity-40">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center mb-3 shadow-inner">
+                                    <ClipboardDocumentListIcon className="w-6 h-6 text-slate-400" />
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center py-4 text-sm text-text-secondary">No hay clases programadas para hoy.</p>
-                    )}
+                                <p className="text-sm font-bold text-slate-500">No hay clases programadas para hoy.</p>
+                            </div>
+                        )}
+                    </div>
                 </Card>
-                 <Card>
-                    <h3 className="font-semibold text-base mb-3">Calificaciones Recientes</h3>
-                    {recentGrades.length > 0 ? (
-                        <ul className="space-y-2">
-                           {recentGrades.map(grade => (
-                               <li key={grade.id} className="flex justify-between items-center pb-2 border-b last:border-0 dark:border-slate-700">
-                                   <div>
-                                       <p className="font-semibold text-sm text-text-primary dark:text-white">{grade.subject}</p>
-                                       <p className="text-xs text-text-secondary dark:text-slate-400">{grade.assignmentTitle}</p>
-                                   </div>
-                                   <span className="font-bold text-base text-primary">{grade.score.toFixed(1)}</span>
-                               </li>
-                           ))}
-                        </ul>
-                    ) : (
-                         <p className="text-center py-4 text-sm text-text-secondary">No hay calificaciones recientes.</p>
-                    )}
+                 <Card className="overflow-hidden flex flex-col bg-white/80 backdrop-blur-2xl dark:bg-slate-900/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-slate-100/50 dark:border-slate-800/50 rounded-3xl transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100/50 dark:border-slate-800/50 bg-gradient-to-r from-transparent via-transparent to-blue-500/5 dark:to-blue-500/10">
+                        <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-3 tracking-tight">
+                            <div className="p-2.5 bg-blue-500/10 dark:bg-blue-500/20 rounded-xl shadow-sm">
+                                <AcademicCapIcon className="w-5 h-5 text-blue-500 dark:text-blue-400"/>
+                            </div>
+                            Calificaciones Recientes
+                        </h3>
+                    </div>
+                    <div className="p-6">
+                        {recentGrades.length > 0 ? (
+                            <ul className="space-y-4">
+                               {recentGrades.map(grade => (
+                                   <li key={grade.id} className="flex justify-between items-center p-4 bg-slate-50/80 rounded-2xl dark:bg-slate-800/50 border border-slate-100/80 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 group">
+                                       <div>
+                                           <p className="font-bold text-sm text-slate-800 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">{grade.subject}</p>
+                                           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{grade.assignmentTitle}</p>
+                                       </div>
+                                       <span className="font-black text-lg text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-3 py-1 rounded-xl shadow-inner">{grade.score.toFixed(1)}</span>
+                                   </li>
+                               ))}
+                            </ul>
+                        ) : (
+                             <div className="py-12 flex flex-col items-center justify-center opacity-40">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center mb-3 shadow-inner">
+                                    <AcademicCapIcon className="w-6 h-6 text-slate-400" />
+                                </div>
+                                <p className="text-sm font-bold text-slate-500">No hay calificaciones recientes.</p>
+                            </div>
+                        )}
+                    </div>
                 </Card>
             </div>
         </div>
