@@ -38,7 +38,7 @@ const FinancialStatusModal: React.FC<{
     ];
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-[80] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[80] flex justify-center items-center p-4 backdrop-blur-sm">
             <Card className="w-full max-w-md shadow-2xl animate-fade-in-up border-none">
                 <div className="flex justify-between items-center mb-6 pb-2 border-b dark:border-slate-700">
                     <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Gestión Financiera</h2>
@@ -126,7 +126,7 @@ const PromotionModal: React.FC<{
         onClose();
     };
     return (
-        <div className="fixed inset-0 bg-black/60 z-[70] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[70] flex justify-center items-center p-4 backdrop-blur-sm">
             <Card className="w-full max-w-2xl shadow-2xl animate-fade-in-up border-none max-h-[90vh] flex flex-col overflow-hidden">
                 <div className="p-6 border-b dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-900 sticky top-0 z-20">
                     <h2 className="text-xl font-black text-slate-800 dark:text-white">Verificación de Cierre y Promoción</h2>
@@ -167,7 +167,7 @@ const PromotionModal: React.FC<{
 
 // ... Reset, Temp, Bulk ...
 const ResetPasswordConfirmationModal: React.FC<{ user: User; onClose: () => void; onConfirm: () => void; }> = ({ user, onClose, onConfirm }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
         <Card className="w-full max-w-md">
             <h2 className="text-lg font-bold mb-4 dark:text-white">Restablecer Contraseña (Email)</h2>
              <div className="space-y-3 text-sm">
@@ -194,7 +194,7 @@ const TempPasswordModal: React.FC<{ user: User; onClose: () => void; onSave: (te
         onClose();
     };
     return (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
             <Card className="w-full max-w-sm">
                 <div className="flex justify-between items-center mb-4 border-b pb-3 dark:border-gray-700">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-white">Asignar Clave Provisional</h2>
@@ -272,7 +272,7 @@ const BulkUploadModal: React.FC<{ onClose: () => void; onSave: (newStudents: any
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
             <Card className="w-full max-w-2xl flex flex-col">
                 <div className="flex justify-between items-center mb-4 border-b pb-3 dark:border-gray-700">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">Carga Masiva de Estudiantes</h2>
@@ -362,7 +362,7 @@ const StudentFormModal: React.FC<{
     ];
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
             <Card className="w-full max-w-2xl">
                 <h2 className="text-lg font-bold mb-6 dark:text-white">{isEditing ? 'Editar Perfil Estudiantil' : 'Matricular Estudiante'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -404,7 +404,7 @@ const StudentFormModal: React.FC<{
                             <label className="block text-sm font-bold mb-1 dark:text-gray-300">Sección</label>
                             <select name="section" value={formData.section} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
-                                {['A', 'B', 'C', 'D', 'E', '1', '2', '3', '4', '5'].map(s => <option key={s} value={s.toString()}>Sección {s}</option>)}
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => <option key={s} value={s.toString()}>Sección {s}</option>)}
                             </select>
                         </div>
                     </div>
@@ -453,7 +453,7 @@ const StudentFormModal: React.FC<{
 
 // ... (ViewStudentModal, DeleteConfirmationModal - Keep unchanged)
 const ViewStudentModal: React.FC<any> = ({ student, onClose }) => (
-    <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
         <Card className="w-full max-w-2xl">
              <div className="flex justify-between items-center mb-6 pb-3 border-b dark:border-gray-700">
                 <h2 className="text-lg font-bold text-gray-800 dark:text-white">Detalles del Estudiante</h2>
@@ -494,7 +494,7 @@ const ViewStudentModal: React.FC<any> = ({ student, onClose }) => (
 );
 
 const DeleteConfirmationModal: React.FC<{ student: Student; onClose: () => void; onConfirm: () => void; }> = ({ student, onClose, onConfirm }) => (
-    <div className="fixed inset-0 bg-black/60 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
         <Card className="w-full max-w-md">
             <h2 className="text-lg font-bold mb-2 text-gray-800 dark:text-white">Eliminar Estudiante</h2>
             <p className="mb-6 text-sm text-gray-600 dark:text-gray-300">¿Está seguro de que desea eliminar a <span className="font-bold text-gray-900 dark:text-white">{student.name}</span>?</p>
