@@ -140,7 +140,7 @@ const PromotionModal: React.FC<{
                             <p className="font-black text-xl text-slate-800 dark:text-white">{student.name}</p>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full uppercase tracking-wider">{student.class}</span>
-                                <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">Semestre {student.section}</span>
+                                <span className="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">Sección {student.section}</span>
                             </div>
                         </div>
                         <div className="text-right">
@@ -227,7 +227,7 @@ const BulkUploadModal: React.FC<{ onClose: () => void; onSave: (newStudents: any
     const [campusId, setCampusId] = useState(user?.role === UserRole.SUPER_ADMIN ? (campuses[0]?.id || '') : (user?.campusId || ''));
     
     const downloadTemplate = () => {
-        const headers = "nombre,documento,correo,telefono,programa,semestre\n";
+        const headers = "nombre,documento,correo,telefono,grado,seccion\n";
         const example = "Juan Perez,12345678,juan@ejemplo.com,3001234567,Publicidad,1\n";
         const blob = new Blob([headers + example], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -283,7 +283,7 @@ const BulkUploadModal: React.FC<{ onClose: () => void; onSave: (newStudents: any
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 flex justify-between items-center">
                         <div>
                             <p className="text-sm font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-1"><DownloadIcon className="w-4 h-4"/> Formato requerido (CSV):</p>
-                            <code className="text-[10px] block bg-white dark:bg-slate-800 p-2 rounded border dark:border-slate-700 dark:text-slate-300">nombre, documento, correo, telefono, programa, semestre</code>
+                            <code className="text-[10px] block bg-white dark:bg-slate-800 p-2 rounded border dark:border-slate-700 dark:text-slate-300">nombre, documento, correo, telefono, grado, seccion</code>
                         </div>
                         <button onClick={downloadTemplate} className="bg-white text-blue-600 px-4 py-2 rounded-lg text-xs font-bold border border-blue-200 hover:bg-blue-50 transition-colors shadow-sm">Descargar Plantilla</button>
                     </div>
@@ -390,7 +390,7 @@ const StudentFormModal: React.FC<{
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Programa</label>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Grado</label>
                             <select name="class" value={formData.class} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
                                 {programOptions.map(cat => (
@@ -401,10 +401,10 @@ const StudentFormModal: React.FC<{
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Semestre</label>
+                            <label className="block text-sm font-bold mb-1 dark:text-gray-300">Sección</label>
                             <select name="section" value={formData.section} onChange={handleChange} className="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700 dark:text-white" required>
                                 <option value="">Seleccionar</option>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => <option key={s} value={s.toString()}>Semestre {s}</option>)}
+                                {['A', 'B', 'C', 'D', 'E', '1', '2', '3', '4', '5'].map(s => <option key={s} value={s.toString()}>Sección {s}</option>)}
                             </select>
                         </div>
                     </div>
@@ -467,22 +467,22 @@ const ViewStudentModal: React.FC<any> = ({ student, onClose }) => (
                 <div>
                     <p className="text-gray-500 text-xs uppercase font-bold">Ubicación Académica</p>
                     <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold mt-1">
-                        {student.class} - Semestre {student.section}
+                        {student.class} - Sección {student.section}
                     </span>
                 </div>
                 <div className="col-span-full border-t pt-4 dark:border-slate-700">
-                    <p className="text-gray-500 text-xs uppercase font-bold mb-2">Historial de Semestres</p>
+                    <p className="text-gray-500 text-xs uppercase font-bold mb-2">Historial de Grados</p>
                     {student.history && student.history.length > 0 ? (
                         <div className="space-y-2">
                             {student.history.map((h: any, idx: number) => (
                                 <div key={idx} className="flex justify-between p-2 rounded bg-slate-50 dark:bg-slate-800 border dark:border-slate-700">
-                                    <span>Semestre {h.semester} ({h.year}-{h.period})</span>
+                                    <span>Grado {h.semester} ({h.year}-{h.period})</span>
                                     <span className={`font-bold ${h.status === 'Aprobado' ? 'text-emerald-500' : 'text-rose-500'}`}>Prom: {h.gpa} - {h.status}</span>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <p className="text-xs text-slate-400">No hay semestres terminados aún.</p>
+                        <p className="text-xs text-slate-400">No hay grados terminados aún.</p>
                     )}
                 </div>
             </div>
@@ -655,7 +655,7 @@ const StudentManagementPage: React.FC = () => {
                                 </div>
                                 Gestión de Estudiantes
                             </h2>
-                            <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración de programas y promociones de semestre.</p>
+                            <p className="text-sm text-slate-500 mt-1 dark:text-slate-400 ml-11">Administración de grados y promociones.</p>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -687,14 +687,14 @@ const StudentManagementPage: React.FC = () => {
                             <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 font-semibold tracking-wider dark:bg-slate-800 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                                 <tr>
                                     <th className="px-6 py-4">Nombre Completo</th>
-                                    <th className="px-6 py-4">Programa / Semestre</th>
+                                    <th className="px-6 py-4">Grado y Sección</th>
                                     <th className="px-6 py-4">Estado Financiero</th>
                                     <th className="px-6 py-4 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {filteredStudents.map(student => (
-                                    <tr key={student.id} className="bg-white hover:bg-slate-50/80 transition-colors dark:bg-slate-900 dark:hover:bg-slate-800/50">
+                                    <tr key={student.id} className="group bg-white hover:bg-slate-50/80 transition-colors dark:bg-slate-900 dark:hover:bg-slate-800/50">
                                         <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700">
@@ -705,7 +705,7 @@ const StudentManagementPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-                                                {student.class} <span className="mx-1 opacity-50">|</span> Semestre {student.section}
+                                                {student.class} <span className="mx-1 opacity-50">|</span> Sección {student.section}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
@@ -727,7 +727,7 @@ const StudentManagementPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                                                <button onClick={() => setPromotingStudent(student)} className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 transition-all shadow-sm border border-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 dark:border-indigo-800" title="Cierre de Semestre / Promoción">
+                                                <button onClick={() => setPromotingStudent(student)} className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 transition-all shadow-sm border border-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 dark:border-indigo-800" title="Cierre de Grado / Promoción">
                                                     <CheckIcon className="w-5 h-5"/>
                                                 </button>
                                                 <button onClick={() => setViewingStudent(student)} className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-700 transition-all shadow-sm border border-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400 dark:border-slate-700" title="Ver Detalles">
