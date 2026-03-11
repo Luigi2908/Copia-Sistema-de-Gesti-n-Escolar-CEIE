@@ -17,7 +17,6 @@ const AdminFormModal: React.FC<{
         name: adminToEdit?.name || '',
         email: adminToEdit?.email || '',
         status: adminToEdit?.status || 'active',
-        campusId: adminToEdit?.campusId || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -73,36 +72,21 @@ const AdminFormModal: React.FC<{
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Sede Asignada</label>
-                                <select 
-                                    name="campusId" 
-                                    value={formData.campusId} 
-                                    onChange={handleChange} 
-                                    className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm font-bold" 
-                                >
-                                    <option value="">Seleccionar Sede</option>
-                                    {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Estado de Cuenta</label>
-                                <select 
-                                    name="status" 
-                                    value={formData.status} 
-                                    onChange={handleChange} 
-                                    className={`w-full p-3 border rounded-xl outline-none transition-all text-sm font-black uppercase tracking-wider cursor-pointer ${
-                                        formData.status === 'active' 
-                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-emerald-500/10' 
-                                        : 'bg-rose-50 border-rose-200 text-rose-700 focus:ring-rose-500/10'
-                                    } dark:bg-slate-800 dark:border-slate-700`}
-                                >
-                                    <option value="active">● ACTIVO</option>
-                                    <option value="inactive">○ INACTIVO</option>
-                                </select>
-                            </div>
+                        <div>
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 ml-1">Estado de Cuenta</label>
+                            <select 
+                                name="status" 
+                                value={formData.status} 
+                                onChange={handleChange} 
+                                className={`w-full p-3 border rounded-xl outline-none transition-all text-sm font-black uppercase tracking-wider cursor-pointer ${
+                                    formData.status === 'active' 
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-emerald-500/10' 
+                                    : 'bg-rose-50 border-rose-200 text-rose-700 focus:ring-rose-500/10'
+                                } dark:bg-slate-800 dark:border-slate-700`}
+                            >
+                                <option value="active">● ACTIVO</option>
+                                <option value="inactive">○ INACTIVO</option>
+                            </select>
                         </div>
                     </div>
 
