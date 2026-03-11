@@ -94,7 +94,6 @@ const CampusFormModal: React.FC<{
                                 value={formData.admin} 
                                 onChange={handleChange} 
                                 className={`w-full p-3.5 border rounded-2xl bg-slate-50 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm font-black appearance-none cursor-pointer ${formData.admin ? 'text-primary' : 'text-slate-400'}`}
-                                required
                             >
                                 <option value="">Seleccionar un Administrador Disponible...</option>
                                 {availableAdmins.map(admin => (

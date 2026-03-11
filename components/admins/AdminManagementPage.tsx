@@ -81,7 +81,6 @@ const AdminFormModal: React.FC<{
                                     value={formData.campusId} 
                                     onChange={handleChange} 
                                     className="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm font-bold" 
-                                    required
                                 >
                                     <option value="">Seleccionar Sede</option>
                                     {campuses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

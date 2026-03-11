@@ -76,8 +76,8 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const [assignments, setAssignments] = useState<TeacherCourseAssignment[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
-    // URL BASE DE TU API EN HOSTINGER
-    const API_BASE_URL = 'http://ceie.website/';
+    // URL BASE DE TU API EN HOSTINGER (DEBE SER HTTPS PARA EVITAR ERRORES DE MIXED CONTENT)
+    const API_BASE_URL = 'https://ceie.website/api/api.php';
 
     const fetchData = useCallback(async () => {
         if (!isAuthenticated) {
@@ -169,7 +169,10 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => null);
+            throw new Error(errData?.error || `Error HTTP: ${response.status}`);
+        }
         await fetchData();
     };
 
@@ -180,7 +183,10 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newItem)
         });
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => null);
+            throw new Error(errData?.error || `Error HTTP: ${response.status}`);
+        }
         await fetchData();
     };
 
@@ -188,7 +194,10 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
         const response = await fetch(`${API_BASE_URL}?resource=${table}&id=${id}`, {
             method: 'DELETE'
         });
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => null);
+            throw new Error(errData?.error || `Error HTTP: ${response.status}`);
+        }
         await fetchData();
     };
 
