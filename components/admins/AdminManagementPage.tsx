@@ -218,8 +218,14 @@ const AdminManagementPage: React.FC = () => {
 
     const handleSave = async (data: any) => {
         try {
-            const campus = campuses.find(c => c.id === data.campusId);
-            const adminData = { ...data, campusName: campus?.name || '' };
+            // Send campusId as empty string to prevent MySQL missing column errors
+            // DO NOT send campusName because it is not a column in the admins table
+            const adminData = { 
+                name: data.name,
+                email: data.email,
+                status: data.status,
+                campusId: ""
+            };
 
             if (editingAdmin) {
                 await updateAdmin(editingAdmin.id, adminData);
