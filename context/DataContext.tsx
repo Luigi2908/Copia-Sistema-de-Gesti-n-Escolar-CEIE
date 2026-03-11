@@ -59,38 +59,6 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Helper to manage local storage
-const getLocalData = (key: string, defaultData: any = []) => {
-    const data = localStorage.getItem(`school_${key}`);
-    return data ? JSON.parse(data) : defaultData;
-};
-
-const setLocalData = (key: string, data: any) => {
-    localStorage.setItem(`school_${key}`, JSON.stringify(data));
-};
-
-// Default Mock Data
-const MOCK_CAMPUSES: Campus[] = [
-    { id: 'c1', name: 'Sede Principal', address: 'Av. Central 123', admin: 'Admin Principal', teachers: 15, students: 300 },
-    { id: 'c2', name: 'Sede Norte', address: 'Calle Norte 456', admin: 'Admin Norte', teachers: 8, students: 150 }
-];
-
-const MOCK_ADMINS: AdminUser[] = [
-    { id: 'a1', name: 'Super Administrador', email: 'superadmin@ceie.com', role: UserRole.SUPER_ADMIN, status: 'active', campusName: 'Global', avatar: '' },
-    { id: 'a2', name: 'Admin Principal', email: 'admin.principal@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c1', campusName: 'Sede Principal', status: 'active', avatar: '' },
-    { id: 'a3', name: 'Admin Norte', email: 'admin.norte@ceie.com', role: UserRole.CAMPUS_ADMIN, campusId: 'c2', campusName: 'Sede Norte', status: 'active', avatar: '' }
-];
-
-const MOCK_TEACHERS: Teacher[] = [
-    { id: 't1', name: 'Profesor Matemáticas', email: 'profesor.matematicas@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Matemáticas', documentNumber: '12345678', phone: '555-0101', status: 'active', avatar: '' },
-    { id: 't2', name: 'Profesora Ciencias', email: 'profesora.ciencias@ceie.com', role: UserRole.TEACHER, campusId: 'c1', campusName: 'Sede Principal', subject: 'Ciencias', documentNumber: '87654321', phone: '555-0102', status: 'active', avatar: '' }
-];
-
-const MOCK_STUDENTS: Student[] = [
-    { id: 's1', name: 'Estudiante Ejemplo', email: 'estudiante@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '001', schoolYear: 2026, schoolPeriod: 'A', financialStatus: 'Al día', documentNumber: '11223344', status: 'active', avatar: '' },
-    { id: 's2', name: 'Estudiante Dos', email: 'estudiante2@ceie.com', role: UserRole.STUDENT, campusId: 'c1', campusName: 'Sede Principal', class: '10A', section: '1', rollNumber: '002', schoolYear: 2026, schoolPeriod: 'A', financialStatus: 'Pendiente (Sensibilización)', documentNumber: '44332211', status: 'active', avatar: '' }
-];
-
 export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const { isAuthenticated, user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
@@ -108,13 +76,8 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     const [assignments, setAssignments] = useState<TeacherCourseAssignment[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
-    // Initialize mock data if empty
-    useEffect(() => {
-        if (!localStorage.getItem('school_campuses')) setLocalData('campuses', MOCK_CAMPUSES);
-        if (!localStorage.getItem('school_admins')) setLocalData('admins', MOCK_ADMINS);
-        if (!localStorage.getItem('school_teachers')) setLocalData('teachers', MOCK_TEACHERS);
-        if (!localStorage.getItem('school_students')) setLocalData('students', MOCK_STUDENTS);
-    }, []);
+    // URL BASE DE TU API EN HOSTINGER
+    const API_BASE_URL = 'http://ceie.website/';
 
     const fetchData = useCallback(async () => {
         if (!isAuthenticated) {
@@ -132,23 +95,19 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
             // Mock delay
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // URL BASE DE TU API EN HOSTINGER
-            // Cambia "https://tudominio.com" por tu dominio real
-            const API_BASE_URL = 'http://ceie.website/';
-
             // Función auxiliar para consultar la API dinámicamente
-            const fetchResource = async (resourceName: string, fallbackData: any) => {
+            const fetchResource = async (resourceName: string) => {
                 try {
                     const response = await fetch(`${API_BASE_URL}?resource=${resourceName}`);
                     if (response.ok) {
                         return await response.json();
                     } else {
-                        console.warn(`API de Hostinger no disponible para ${resourceName}, usando datos locales.`);
-                        return fallbackData;
+                        console.warn(`API de Hostinger no disponible para ${resourceName}.`);
+                        return [];
                     }
                 } catch (fetchError) {
-                    console.warn(`Error conectando a Hostinger para ${resourceName}, usando datos locales:`, fetchError);
-                    return fallbackData;
+                    console.error(`Error conectando a Hostinger para ${resourceName}:`, fetchError);
+                    return [];
                 }
             };
 
@@ -166,17 +125,17 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
                 fetchedAssignments,
                 fetchedAttendance
             ] = await Promise.all([
-                fetchResource('campuses', getLocalData('campuses', MOCK_CAMPUSES)),
-                fetchResource('admins', getLocalData('admins', MOCK_ADMINS)),
-                fetchResource('teachers', getLocalData('teachers', MOCK_TEACHERS)),
-                fetchResource('students', getLocalData('students', MOCK_STUDENTS)),
-                fetchResource('grades', getLocalData('grades')),
-                fetchResource('communications', getLocalData('communications')),
-                fetchResource('schedules', getLocalData('schedules')),
-                fetchResource('exams', getLocalData('exams')),
-                fetchResource('events', getLocalData('events')),
-                fetchResource('assignments', getLocalData('assignments')),
-                fetchResource('attendance', getLocalData('attendance'))
+                fetchResource('campuses'),
+                fetchResource('admins'),
+                fetchResource('teachers'),
+                fetchResource('students'),
+                fetchResource('grades'),
+                fetchResource('communications'),
+                fetchResource('schedules'),
+                fetchResource('exams'),
+                fetchResource('events'),
+                fetchResource('assignments'),
+                fetchResource('attendance')
             ]);
 
             // Actualizar el estado de la aplicación con los datos obtenidos
@@ -205,23 +164,31 @@ export const DataProvider = ({ children }: { children?: ReactNode }) => {
     }, [fetchData]);
 
     const dbUpdate = async (table: string, id: string, data: any) => {
-        const currentData = getLocalData(table);
-        const updatedData = currentData.map((item: any) => item.id === id ? { ...item, ...data } : item);
-        setLocalData(table, updatedData);
+        const response = await fetch(`${API_BASE_URL}?resource=${table}&id=${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         await fetchData();
     };
 
     const dbInsert = async (table: string, data: any) => {
-        const currentData = getLocalData(table);
-        const newItem = { ...data, id: Date.now().toString() };
-        setLocalData(table, [...currentData, newItem]);
+        const newItem = { ...data, id: data.id || Date.now().toString() };
+        const response = await fetch(`${API_BASE_URL}?resource=${table}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newItem)
+        });
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         await fetchData();
     };
 
     const dbDelete = async (table: string, id: string) => {
-        const currentData = getLocalData(table);
-        const filteredData = currentData.filter((item: any) => item.id !== id);
-        setLocalData(table, filteredData);
+        const response = await fetch(`${API_BASE_URL}?resource=${table}&id=${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         await fetchData();
     };
 

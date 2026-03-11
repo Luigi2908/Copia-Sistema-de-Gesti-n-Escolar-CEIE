@@ -38,7 +38,7 @@ const bimonthlyPeriods = [
 
 const defaultSettings: GlobalSettings = {
     schoolName: 'Sistema de Gestión CEIE',
-    schoolLogo: 'https://i.ibb.co/3ym3z0g/Captura-de-pantalla-2025-03-09-174823.png',
+    schoolLogo: 'https://i.ibb.co/d4xqLYRy/1000086252-removebg-preview.png',
     rector: 'Dr. Roberto Mendoza',
     secretary: 'Dra. Patricia Arango',
     address: 'Av. Universidad #45-12',
@@ -195,8 +195,8 @@ const GlobalSettingsPage: React.FC = () => {
                         {activeTab === 'general' && (
                             <div className="space-y-8">
                                 <div className="flex flex-col md:flex-row items-center gap-8 p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                    <div className="relative group shrink-0">
-                                        <img src={settings.schoolLogo} alt="Logo" className="w-32 h-32 rounded-[2.5rem] object-cover shadow-2xl border-4 border-white dark:border-slate-800" />
+                                    <div className="relative group shrink-0 bg-white rounded-[2.5rem] p-2 shadow-2xl border-4 border-white dark:border-slate-800 flex justify-center items-center">
+                                        <img src={settings.schoolLogo} alt="Logo" className="w-36 h-36 rounded-[2rem] object-contain" />
                                         <div className="absolute inset-0 bg-black/40 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                                             <UploadIcon className="text-white w-10 h-10" />
                                             <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer"/>

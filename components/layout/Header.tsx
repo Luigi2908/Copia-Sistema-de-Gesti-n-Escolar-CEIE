@@ -230,7 +230,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const notificationRef = useRef<HTMLDivElement>(null);
 
   const [schoolName, setSchoolName] = useState('Sistema de Gestión CEIE');
-  const [schoolLogo, setSchoolLogo] = useState<string>('https://i.ibb.co/3ym3z0g/Captura-de-pantalla-2025-03-09-174823.png');
+  const [schoolLogo, setSchoolLogo] = useState<string>('https://i.ibb.co/d4xqLYRy/1000086252-removebg-preview.png');
 
   useEffect(() => {
         const loadBranding = () => {
@@ -359,7 +359,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                 {/* Branding */}
                 <div className="flex items-center gap-4">
                     {schoolLogo ? (
-                        <img src={schoolLogo} alt="School Logo" className="w-9 h-9 sm:w-11 sm:h-11 object-contain drop-shadow-sm" />
+                        <img src={schoolLogo} alt="School Logo" className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-sm" />
                     ) : (
                         <div className="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center shadow-sm text-white">
                             <span className="font-black text-xl">{schoolName.charAt(0)}</span>

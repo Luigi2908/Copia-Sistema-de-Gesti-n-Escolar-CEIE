@@ -16,7 +16,7 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   
   const schoolName = 'Sistema de Gestión CEIE';
-  const schoolLogo = 'https://i.ibb.co/3ym3z0g/Captura-de-pantalla-2025-03-09-174823.png';
+  const schoolLogo = 'https://i.ibb.co/d4xqLYRy/1000086252-removebg-preview.png';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +46,8 @@ const LoginPage: React.FC = () => {
       <main className="flex-grow flex flex-col items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-[440px] animate-fade-in-up">
           <div className="text-center mb-10">
-              <div className="bg-white p-5 rounded-[2rem] shadow-soft inline-block mb-6 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 transition-transform hover:scale-105 duration-300">
-                <img src={schoolLogo} alt="Logo" className="w-16 h-16 object-contain" />
+              <div className="bg-white p-6 rounded-[2rem] shadow-soft inline-flex justify-center items-center mb-6 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 transition-transform hover:scale-105 duration-300">
+                <img src={schoolLogo} alt="Logo" className="w-24 h-24 sm:w-28 sm:h-28 object-contain mx-auto" />
               </div>
               <h1 className="text-[2rem] leading-tight font-bold text-slate-900 dark:text-white tracking-tight mb-3">
                 {schoolName}
